@@ -18,4 +18,15 @@ export default () => ({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
   },
+  blockchain: {
+    stellar: {
+      network: process.env.STELLAR_NETWORK || 'TESTNET',
+      rpcUrl: process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
+      networkPassphrase: process.env.STELLAR_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015',
+    },
+    soroban: {
+      contractId: process.env.SOROBAN_CONTRACT_ID,
+      adminSecret: process.env.SOROBAN_ADMIN_SECRET,
+    },
+  },
 });

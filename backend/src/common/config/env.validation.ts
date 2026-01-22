@@ -56,6 +56,22 @@ class EnvironmentVariables {
   @Min(1)
   @Max(65535)
   REDIS_PORT?: number;
+
+  @IsString()
+  @IsOptional()
+  STELLAR_NETWORK: string;
+
+  @IsString()
+  STELLAR_RPC_URL: string;
+
+  @IsString()
+  STELLAR_NETWORK_PASSPHRASE: string;
+
+  @IsString()
+  SOROBAN_CONTRACT_ID: string;
+
+  @IsString()
+  SOROBAN_ADMIN_SECRET: string;
 }
 
 export function validate(config: Record<string, unknown>) {

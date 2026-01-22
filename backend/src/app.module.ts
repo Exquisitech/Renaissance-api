@@ -10,6 +10,7 @@ import { Media } from './media/entities/media.entity';
 import configuration from './config/configuration';
 import { AuthModule } from './auth/auth.module';
 import { validate } from './common/config/env.validation';
+import { BlockchainModule } from './blockchain/blockchain.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { validate } from './common/config/env.validation';
     }),
     TypeOrmModule.forFeature([User, Post, Comment, Category, Media]),
     AuthModule,
+    BlockchainModule,
   ],
   controllers: [],
   providers: [],
