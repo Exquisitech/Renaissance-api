@@ -10,6 +10,8 @@ import { Media } from './media/entities/media.entity';
 import { Match } from './matches/entities/match.entity';
 import { Bet } from './bets/entities/bet.entity';
 import configuration from './config/configuration';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { BetsModule } from './bets/bets.module';
 import { MatchesModule } from './matches/matches.module';
@@ -23,6 +25,18 @@ import { validate } from './common/config/env.validation';
       envFilePath: ['.env.local', '.env'],
       validate,
       cache: true,
+    }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: config.get<number>('THROTTLE_TTL', 60000), // 60 seconds
+            limit: config.get<number>('THROTTLE_LIMIT', 10), // 10 requests
+          },
+        ],
+      }),
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -43,6 +57,12 @@ import { validate } from './common/config/env.validation';
     MatchesModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
