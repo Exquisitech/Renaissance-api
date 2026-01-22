@@ -58,7 +58,9 @@ describe('WalletService', () => {
 
     service = module.get<WalletService>(WalletService);
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    transactionRepository = module.get<Repository<Transaction>>(getRepositoryToken(Transaction));
+    transactionRepository = module.get<Repository<Transaction>>(
+      getRepositoryToken(Transaction),
+    );
     dataSource = module.get<DataSource>(DataSource);
   });
 
@@ -74,16 +76,19 @@ describe('WalletService', () => {
       const mockTransaction = { id: 'txn-123', status: 'pending' };
 
       const queryRunner = mockDataSource.createQueryRunner();
-      
+
       queryRunner.manager.findOne.mockResolvedValue(mockUser);
       queryRunner.manager.create.mockReturnValue(mockTransaction);
-      queryRunner.manager.save.mockResolvedValueOnce(mockTransaction).mockResolvedValueOnce({
-        ...mockUser,
-        walletBalance: 150,
-      }).mockResolvedValueOnce({
-        ...mockTransaction,
-        status: 'completed',
-      });
+      queryRunner.manager.save
+        .mockResolvedValueOnce(mockTransaction)
+        .mockResolvedValueOnce({
+          ...mockUser,
+          walletBalance: 150,
+        })
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          status: 'completed',
+        });
 
       const result = await service.deposit(userId, amount);
 
@@ -100,16 +105,22 @@ describe('WalletService', () => {
       const userId = 'test-user-id';
       const amount = 100;
       const queryRunner = mockDataSource.createQueryRunner();
-      
-      queryRunner.manager.findOne.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.deposit(userId, amount)).rejects.toThrow('Database error');
+      queryRunner.manager.findOne.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(service.deposit(userId, amount)).rejects.toThrow(
+        'Database error',
+      );
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
       expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
     });
 
     it('should throw BadRequestException for negative amount', async () => {
-      await expect(service.deposit('user-id', -50)).rejects.toThrow('Deposit amount must be positive');
+      await expect(service.deposit('user-id', -50)).rejects.toThrow(
+        'Deposit amount must be positive',
+      );
     });
   });
 
@@ -121,16 +132,19 @@ describe('WalletService', () => {
       const mockTransaction = { id: 'txn-456', status: 'pending' };
 
       const queryRunner = mockDataSource.createQueryRunner();
-      
+
       queryRunner.manager.findOne.mockResolvedValue(mockUser);
       queryRunner.manager.create.mockReturnValue(mockTransaction);
-      queryRunner.manager.save.mockResolvedValueOnce(mockTransaction).mockResolvedValueOnce({
-        ...mockUser,
-        walletBalance: 50,
-      }).mockResolvedValueOnce({
-        ...mockTransaction,
-        status: 'completed',
-      });
+      queryRunner.manager.save
+        .mockResolvedValueOnce(mockTransaction)
+        .mockResolvedValueOnce({
+          ...mockUser,
+          walletBalance: 50,
+        })
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          status: 'completed',
+        });
 
       const result = await service.withdraw(userId, amount);
 
@@ -149,7 +163,9 @@ describe('WalletService', () => {
       const queryRunner = mockDataSource.createQueryRunner();
       queryRunner.manager.findOne.mockResolvedValue(mockUser);
 
-      await expect(service.withdraw(userId, amount)).rejects.toThrow('Insufficient wallet balance');
+      await expect(service.withdraw(userId, amount)).rejects.toThrow(
+        'Insufficient wallet balance',
+      );
     });
   });
 
@@ -161,18 +177,25 @@ describe('WalletService', () => {
       const mockTransaction = { id: 'txn-789', status: 'pending' };
 
       const queryRunner = mockDataSource.createQueryRunner();
-      
+
       queryRunner.manager.findOne.mockResolvedValue(mockUser);
       queryRunner.manager.create.mockReturnValue(mockTransaction);
-      queryRunner.manager.save.mockResolvedValueOnce(mockTransaction).mockResolvedValueOnce({
-        ...mockUser,
-        walletBalance: 175,
-      }).mockResolvedValueOnce({
-        ...mockTransaction,
-        status: 'completed',
-      });
+      queryRunner.manager.save
+        .mockResolvedValueOnce(mockTransaction)
+        .mockResolvedValueOnce({
+          ...mockUser,
+          walletBalance: 175,
+        })
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          status: 'completed',
+        });
 
-      const result = await service.updateUserBalance(userId, amount, 'bet_winning');
+      const result = await service.updateUserBalance(
+        userId,
+        amount,
+        'bet_winning',
+      );
 
       expect(result).toEqual({
         success: true,
@@ -189,8 +212,9 @@ describe('WalletService', () => {
       const queryRunner = mockDataSource.createQueryRunner();
       queryRunner.manager.findOne.mockResolvedValue(mockUser);
 
-      await expect(service.updateUserBalance(userId, amount, 'bet_winning'))
-        .rejects.toThrow('Insufficient wallet balance for this operation');
+      await expect(
+        service.updateUserBalance(userId, amount, 'bet_winning'),
+      ).rejects.toThrow('Insufficient wallet balance for this operation');
     });
   });
 });

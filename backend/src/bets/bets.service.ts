@@ -16,7 +16,11 @@ import {
 import { CreateBetDto } from './dto/create-bet.dto';
 import { UpdateBetStatusDto } from './dto/update-bet-status.dto';
 import { WalletService } from '../wallet/wallet.service';
-import { TransactionType } from '../transactions/entities/transaction.entity';
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
 
 export interface PaginatedBets {
   data: Bet[];
@@ -85,11 +89,13 @@ export class BetsService {
         {
           matchId: createBetDto.matchId,
           predictedOutcome: createBetDto.predictedOutcome,
-        }
+        },
       );
 
       if (!walletResult.success) {
-        throw new BadRequestException(walletResult.error || 'Failed to deduct stake amount from wallet');
+        throw new BadRequestException(
+          walletResult.error || 'Failed to deduct stake amount from wallet',
+        );
       }
 
       // Calculate odds based on predicted outcome
@@ -112,13 +118,13 @@ export class BetsService {
       const savedBet = await queryRunner.manager.save(bet);
 
       // Update the transaction record with bet ID
-      const transaction = await queryRunner.manager.findOne('transactions', {
-        where: { 
-          userId, 
-          type: TransactionType.BET_PLACEMENT, 
-          status: 'completed' 
+      const transaction = await queryRunner.manager.findOne(Transaction, {
+        where: {
+          userId,
+          type: TransactionType.BET_PLACEMENT,
+          status: TransactionStatus.COMPLETED,
         },
-        order: { createdAt: 'DESC' }
+        order: { createdAt: 'DESC' } as any,
       });
 
       if (transaction) {
@@ -283,9 +289,12 @@ export class BetsService {
    * Settle all bets for a match based on the match outcome
    * Uses transaction for atomic operations including wallet updates
    */
-  async settleMatchBets(
-    matchId: string,
-  ): Promise<{ settled: number; won: number; lost: number; totalPayout: number }> {
+  async settleMatchBets(matchId: string): Promise<{
+    settled: number;
+    won: number;
+    lost: number;
+    totalPayout: number;
+  }> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -329,7 +338,7 @@ export class BetsService {
           bet.status = BetStatus.WON;
           won++;
           totalPayout += Number(bet.potentialPayout);
-          
+
           // Credit winnings to user wallet
           await this.walletService.updateUserBalance(
             bet.userId,
@@ -340,7 +349,7 @@ export class BetsService {
               matchId: bet.matchId,
               stakeAmount: Number(bet.stakeAmount),
               payoutAmount: Number(bet.potentialPayout),
-            }
+            },
           );
         } else {
           // Loser - no payout
@@ -410,7 +419,7 @@ export class BetsService {
           matchId: bet.matchId,
           stakeAmount: Number(bet.stakeAmount),
           cancellationReason: isAdmin ? 'admin_cancelled' : 'user_cancelled',
-        }
+        },
       );
 
       bet.status = BetStatus.CANCELLED;

@@ -10,6 +10,11 @@ import { Repository } from 'typeorm';
 import { ModuleRef } from '@nestjs/core';
 import { UserRole } from '../../users/entities/user.entity';
 
+interface AuthenticatedRequest extends Request {
+  user: RequestUser;
+  params: Record<string, string>;
+}
+
 interface RequestUser {
   userId: string;
   email: string;
@@ -39,7 +44,9 @@ export function OwnershipGuard(options: OwnershipGuardOptions) {
         adminBypass = true,
       } = options;
 
-      const request = context.switchToHttp().getRequest<{ user?: RequestUser }>();
+      const request = context
+        .switchToHttp()
+        .getRequest<AuthenticatedRequest & { resource?: any }>();
       const user = request.user;
 
       if (!user || !user.userId) {
@@ -53,7 +60,9 @@ export function OwnershipGuard(options: OwnershipGuardOptions) {
 
       const resourceId = request.params[resourceIdParam];
       if (!resourceId) {
-        throw new NotFoundException('Resource ID not found in request parameters');
+        throw new NotFoundException(
+          'Resource ID not found in request parameters',
+        );
       }
 
       // Get repository dynamically
@@ -90,11 +99,15 @@ export function OwnershipGuard(options: OwnershipGuardOptions) {
       }
 
       if (!resourceOwnerId) {
-        throw new ForbiddenException('Access denied: Resource ownership not determined');
+        throw new ForbiddenException(
+          'Access denied: Resource ownership not determined',
+        );
       }
 
       if (resourceOwnerId !== user.userId) {
-        throw new ForbiddenException('Access denied: You do not own this resource');
+        throw new ForbiddenException(
+          'Access denied: You do not own this resource',
+        );
       }
 
       // Attach the resource to the request for potential use in controllers

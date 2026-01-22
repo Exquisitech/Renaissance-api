@@ -1,8 +1,16 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { Transaction, TransactionType, TransactionStatus } from '../transactions/entities/transaction.entity';
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
 
 export interface WalletOperationResult {
   success: boolean;
@@ -25,7 +33,11 @@ export class WalletService {
    * Deposit funds to user wallet
    * Uses transaction to ensure atomicity
    */
-  async deposit(userId: string, amount: number, referenceId?: string): Promise<WalletOperationResult> {
+  async deposit(
+    userId: string,
+    amount: number,
+    referenceId?: string,
+  ): Promise<WalletOperationResult> {
     if (amount <= 0) {
       throw new BadRequestException('Deposit amount must be positive');
     }
@@ -87,7 +99,11 @@ export class WalletService {
    * Withdraw funds from user wallet
    * Uses transaction to ensure atomicity
    */
-  async withdraw(userId: string, amount: number, referenceId?: string): Promise<WalletOperationResult> {
+  async withdraw(
+    userId: string,
+    amount: number,
+    referenceId?: string,
+  ): Promise<WalletOperationResult> {
     if (amount <= 0) {
       throw new BadRequestException('Withdrawal amount must be positive');
     }
@@ -173,7 +189,13 @@ export class WalletService {
     userId: string,
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ data: Transaction[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{
+    data: Transaction[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.transactionRepository.findAndCount({
@@ -220,8 +242,13 @@ export class WalletService {
 
       // Check if operation would result in negative balance (except for withdrawals which are checked separately)
       const newBalance = Number(user.walletBalance) + Number(amount);
-      if (newBalance < 0 && transactionType !== TransactionType.WALLET_WITHDRAWAL) {
-        throw new BadRequestException('Insufficient wallet balance for this operation');
+      if (
+        newBalance < 0 &&
+        transactionType !== TransactionType.WALLET_WITHDRAWAL
+      ) {
+        throw new BadRequestException(
+          'Insufficient wallet balance for this operation',
+        );
       }
 
       // Create transaction record

@@ -13,7 +13,9 @@ export class TransactionManagerService {
    * Execute a function within a transaction
    * Automatically handles commit/rollback and cleanup
    */
-  async executeInTransaction<T>(operation: (queryRunner: QueryRunner) => Promise<T>): Promise<T> {
+  async executeInTransaction<T>(
+    operation: (queryRunner: QueryRunner) => Promise<T>,
+  ): Promise<T> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -43,16 +45,16 @@ export class TransactionManagerService {
    * All operations must succeed or all will be rolled back
    */
   async executeMultipleOperations<T>(
-    operations: ((queryRunner: QueryRunner) => Promise<any>)[]
+    operations: ((queryRunner: QueryRunner) => Promise<any>)[],
   ): Promise<T[]> {
     return this.executeInTransaction(async (queryRunner) => {
       const results: T[] = [];
-      
+
       for (const operation of operations) {
         const result = await operation(queryRunner);
         results.push(result);
       }
-      
+
       return results;
     });
   }
@@ -63,7 +65,7 @@ export class TransactionManagerService {
   async executeWithRetry<T>(
     operation: (queryRunner: QueryRunner) => Promise<T>,
     maxRetries: number = 3,
-    delayMs: number = 100
+    delayMs: number = 100,
   ): Promise<T> {
     let lastError: Error | null = null;
 
@@ -72,24 +74,26 @@ export class TransactionManagerService {
         return await this.executeInTransaction(operation);
       } catch (error) {
         lastError = error;
-        
+
         // Check if it's a deadlock error (PostgreSQL error code 40P01)
         if (
-          error.code === '40P01' || 
+          error.code === '40P01' ||
           (error.message && error.message.toLowerCase().includes('deadlock'))
         ) {
           if (attempt < maxRetries) {
             // Wait before retry with exponential backoff
-            await new Promise(resolve => setTimeout(resolve, delayMs * Math.pow(2, attempt - 1)));
+            await new Promise((resolve) =>
+              setTimeout(resolve, delayMs * Math.pow(2, attempt - 1)),
+            );
             continue;
           }
         }
-        
+
         // Re-throw if not a retryable error or max retries reached
         throw error;
       }
     }
-    
+
     throw lastError;
   }
 }

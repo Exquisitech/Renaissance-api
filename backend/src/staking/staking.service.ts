@@ -1,8 +1,17 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
-import { Transaction, TransactionType, TransactionStatus } from '../transactions/entities/transaction.entity';
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
 
 export interface StakeResult {
   success: boolean;
@@ -44,11 +53,15 @@ export class StakingService {
   async stakeTokens(userId: string, amount: number): Promise<StakeResult> {
     // Validate amount
     if (amount < this.config.minStakeAmount) {
-      throw new BadRequestException(`Minimum stake amount is ${this.config.minStakeAmount}`);
+      throw new BadRequestException(
+        `Minimum stake amount is ${this.config.minStakeAmount}`,
+      );
     }
 
     if (amount > this.config.maxStakeAmount) {
-      throw new BadRequestException(`Maximum stake amount is ${this.config.maxStakeAmount}`);
+      throw new BadRequestException(
+        `Maximum stake amount is ${this.config.maxStakeAmount}`,
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -68,12 +81,15 @@ export class StakingService {
 
       // Check if user has sufficient balance
       if (Number(user.walletBalance) < Number(amount)) {
-        throw new BadRequestException('Insufficient wallet balance for staking');
+        throw new BadRequestException(
+          'Insufficient wallet balance for staking',
+        );
       }
 
       // Calculate reward amount based on APR and duration
       const dailyRate = this.config.apr / 365 / 100;
-      const rewardAmount = Number(amount) * dailyRate * this.config.durationDays;
+      const rewardAmount =
+        Number(amount) * dailyRate * this.config.durationDays;
 
       // Create staking transaction record
       const transaction = queryRunner.manager.create(Transaction, {
@@ -134,23 +150,25 @@ export class StakingService {
     try {
       // Get the staking transaction
       const stakeTransaction = await queryRunner.manager.findOne(Transaction, {
-        where: { 
-          id: stakeId, 
+        where: {
+          id: stakeId,
           userId,
           type: TransactionType.STAKING_PENALTY,
-          status: TransactionStatus.COMPLETED
+          status: TransactionStatus.COMPLETED,
         },
       });
 
       if (!stakeTransaction) {
-        throw new NotFoundException('Staking record not found or already claimed');
+        throw new NotFoundException(
+          'Staking record not found or already claimed',
+        );
       }
 
       // Check if staking period has ended
       const startDate = new Date(stakeTransaction.createdAt);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + this.config.durationDays);
-      
+
       if (new Date() < endDate) {
         throw new BadRequestException('Staking period has not yet ended');
       }
@@ -174,7 +192,8 @@ export class StakingService {
         },
       });
 
-      const savedRewardTransaction = await queryRunner.manager.save(rewardTransaction);
+      const savedRewardTransaction =
+        await queryRunner.manager.save(rewardTransaction);
 
       // Update user wallet with rewards
       const user = await queryRunner.manager.findOne(User, {
@@ -186,7 +205,10 @@ export class StakingService {
         throw new NotFoundException('User not found');
       }
 
-      user.walletBalance = Number(user.walletBalance) + Number(rewardAmount) + Number(stakedAmount);
+      user.walletBalance =
+        Number(user.walletBalance) +
+        Number(rewardAmount) +
+        Number(stakedAmount);
       await queryRunner.manager.save(user);
 
       // Mark reward transaction as completed
@@ -219,17 +241,17 @@ export class StakingService {
    */
   async getActiveStakes(userId: string): Promise<Transaction[]> {
     const stakes = await this.transactionRepository.find({
-      where: { 
+      where: {
         userId,
         type: TransactionType.STAKING_PENALTY,
-        status: TransactionStatus.COMPLETED
+        status: TransactionStatus.COMPLETED,
       },
       order: { createdAt: 'DESC' },
     });
 
     // Filter out expired stakes
     const now = new Date();
-    return stakes.filter(stake => {
+    return stakes.filter((stake) => {
       const startDate = new Date(stake.createdAt);
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + this.config.durationDays);
@@ -244,11 +266,17 @@ export class StakingService {
     userId: string,
     page: number = 1,
     limit: number = 10,
-  ): Promise<{ data: Transaction[]; total: number; page: number; limit: number; totalPages: number }> {
+  ): Promise<{
+    data: Transaction[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const skip = (page - 1) * limit;
 
     const [data, total] = await this.transactionRepository.findAndCount({
-      where: { 
+      where: {
         userId,
         type: TransactionType.STAKING_PENALTY,
       },
@@ -277,9 +305,15 @@ export class StakingService {
    * Early unstake (with penalty)
    * Uses transaction to ensure atomicity
    */
-  async earlyUnstake(userId: string, stakeId: string, penaltyPercent: number = 25): Promise<StakeResult> {
+  async earlyUnstake(
+    userId: string,
+    stakeId: string,
+    penaltyPercent: number = 25,
+  ): Promise<StakeResult> {
     if (penaltyPercent < 0 || penaltyPercent > 100) {
-      throw new BadRequestException('Penalty percentage must be between 0 and 100');
+      throw new BadRequestException(
+        'Penalty percentage must be between 0 and 100',
+      );
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -289,11 +323,11 @@ export class StakingService {
     try {
       // Get the staking transaction
       const stakeTransaction = await queryRunner.manager.findOne(Transaction, {
-        where: { 
-          id: stakeId, 
+        where: {
+          id: stakeId,
           userId,
           type: TransactionType.STAKING_PENALTY,
-          status: TransactionStatus.COMPLETED
+          status: TransactionStatus.COMPLETED,
         },
       });
 
@@ -321,7 +355,8 @@ export class StakingService {
         },
       });
 
-      const savedPenaltyTransaction = await queryRunner.manager.save(penaltyTransaction);
+      const savedPenaltyTransaction =
+        await queryRunner.manager.save(penaltyTransaction);
 
       // Update user wallet with remaining amount (minus penalty)
       const user = await queryRunner.manager.findOne(User, {

@@ -15,6 +15,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { BetsModule } from './bets/bets.module';
 import { MatchesModule } from './matches/matches.module';
+import { PostsModule } from './posts/posts.module';
 import { validate } from './common/config/env.validation';
 
 @Module({
@@ -55,10 +56,10 @@ import { validate } from './common/config/env.validation';
     AuthModule,
     BetsModule,
     MatchesModule,
+    PostsModule,
   ],
   controllers: [],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

@@ -67,7 +67,13 @@ export class User extends BaseEntity {
   @Column({ name: 'last_login_at', nullable: true })
   lastLoginAt: Date;
 
-  @Column({ name: 'wallet_balance', type: 'decimal', precision: 18, scale: 8, default: 0 })
+  @Column({
+    name: 'wallet_balance',
+    type: 'decimal',
+    precision: 18,
+    scale: 8,
+    default: 0,
+  })
   walletBalance: number;
 
   @OneToMany(() => Post, (post) => post.author)
