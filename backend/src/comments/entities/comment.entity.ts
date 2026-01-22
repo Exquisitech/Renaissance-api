@@ -28,10 +28,10 @@ export class Comment extends BaseEntity {
   @Column({ nullable: true })
   parentId: string;
 
-  @ManyToOne(() => User, (user) => user.comments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.comments, { onDelete: 'SET NULL' })
   author: User;
 
-  @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Post, (post) => post.comments, { onDelete: 'SET NULL' })
   post: Post;
 
   @ManyToOne(() => Comment, (comment) => comment.replies, { nullable: true })

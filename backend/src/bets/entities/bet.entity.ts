@@ -53,7 +53,7 @@ export class Bet extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 

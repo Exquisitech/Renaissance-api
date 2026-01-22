@@ -73,10 +73,10 @@ export class User extends BaseEntity {
   @OneToMany(() => Post, (post) => post.author)
   posts: Post[];
 
-  @OneToMany(() => Comment, (comment) => comment.author)
+  @OneToMany(() => Comment, (comment) => comment.author, { cascade: true })
   comments: Comment[];
 
-  @OneToMany(() => Bet, (bet) => bet.user)
+  @OneToMany(() => Bet, (bet) => bet.user, { cascade: true })
   bets: Bet[];
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)

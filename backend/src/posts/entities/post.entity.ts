@@ -77,7 +77,7 @@ export class Post extends BaseEntity {
   @Column({ type: 'json', nullable: true })
   metadata: Record<string, any>;
 
-  @ManyToOne(() => User, (user) => user.posts, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.posts, { onDelete: 'SET NULL' })
   author: User;
 
   @OneToMany(() => Comment, (comment) => comment.post)
