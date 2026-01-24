@@ -249,21 +249,39 @@ export class LeaderboardService {
    */
   async getTopLeaderboard(
     limit: number = 100,
-    orderBy: 'totalWinnings' | 'bettingAccuracy' | 'winningStreak' =
-      'totalWinnings',
+    offset: number = 0,
+    orderBy:
+      | 'totalWinnings'
+      | 'bettingAccuracy'
+      | 'winningStreak' = 'totalWinnings',
   ): Promise<Leaderboard[]> {
-    const query = this.leaderboardRepository.createQueryBuilder('leaderboard');
+    const query = this.leaderboardRepository
+      .createQueryBuilder('leaderboard')
+      .leftJoinAndSelect('leaderboard.user', 'user')
+      .select([
+        'leaderboard.id',
+        'leaderboard.userId',
+        'leaderboard.totalWinnings',
+        'leaderboard.bettingAccuracy',
+        'leaderboard.winningStreak',
+        'leaderboard.totalBets',
+        'leaderboard.betsWon',
+        'leaderboard.betsLost',
+        'user.id',
+        'user.username',
+        'user.email',
+      ]);
 
     if (orderBy === 'totalWinnings') {
       query.orderBy('leaderboard.totalWinnings', 'DESC');
     } else if (orderBy === 'bettingAccuracy') {
       query
-        .where('leaderboard.totalBets > :minBets', { minBets: 0 })
+        .where('leaderboard.totalBets > :minBets', { minBets: 10 })
         .orderBy('leaderboard.bettingAccuracy', 'DESC');
     } else if (orderBy === 'winningStreak') {
       query.orderBy('leaderboard.winningStreak', 'DESC');
     }
 
-    return query.limit(limit).leftJoinAndSelect('leaderboard.user', 'user').getMany();
+    return query.skip(offset).take(limit).getMany();
   }
 }
