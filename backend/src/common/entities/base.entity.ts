@@ -3,8 +3,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  Index,
 } from 'typeorm';
 
+@Index(['createdAt'])
+@Index(['updatedAt'])
 export abstract class BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

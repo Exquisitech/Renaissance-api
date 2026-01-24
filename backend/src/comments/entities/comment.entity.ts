@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { Post } from '../../posts/entities/post.entity';
@@ -11,6 +11,8 @@ export enum CommentStatus {
 }
 
 @Entity('comments')
+@Index(['status'])
+@Index(['parentId'])
 export class Comment extends BaseEntity {
   @Column({ type: 'text' })
   content: string;

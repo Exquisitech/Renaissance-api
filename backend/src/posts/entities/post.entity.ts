@@ -5,6 +5,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinTable,
+  Index,
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
@@ -26,6 +27,10 @@ export enum PostType {
 }
 
 @Entity('posts')
+@Index(['status'])
+@Index(['publishedAt'])
+@Index(['slug'], { unique: true })
+@Index(['status', 'publishedAt'])
 export class Post extends BaseEntity {
   @Column()
   title: string;

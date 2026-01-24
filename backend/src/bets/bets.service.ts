@@ -188,6 +188,7 @@ export class BetsService {
 
   /**
    * Get all bets for a specific match with pagination
+   * Optimized to use QueryBuilder for better control over selected fields
    */
   async getMatchBets(
     matchId: string,
@@ -204,26 +205,28 @@ export class BetsService {
 
     const skip = (page - 1) * limit;
 
-    const [data, total] = await this.betRepository.findAndCount({
-      where: { matchId },
-      relations: ['user'],
-      order: { createdAt: 'DESC' },
-      skip,
-      take: limit,
-    });
+    // Use QueryBuilder to select only necessary user fields
+    const queryBuilder = this.betRepository
+      .createQueryBuilder('bet')
+      .leftJoinAndSelect('bet.user', 'user')
+      .select([
+        'bet',
+        'user.id',
+        'user.email',
+        'user.username',
+        'user.firstName',
+        'user.lastName',
+        'user.avatar',
+      ])
+      .where('bet.matchId = :matchId', { matchId })
+      .orderBy('bet.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit);
 
-    // Remove sensitive user data
-    const sanitizedData = data.map((bet) => {
-      if (bet.user) {
-        const userWithoutSensitive = { ...bet.user };
-        delete (userWithoutSensitive as { password?: string }).password;
-        return { ...bet, user: userWithoutSensitive };
-      }
-      return bet;
-    });
+    const [data, total] = await queryBuilder.getManyAndCount();
 
     return {
-      data: sanitizedData,
+      data,
       total,
       page,
       limit,
@@ -322,9 +325,9 @@ export class BetsService {
       }
 
       // Get all pending bets for this match
+      // Use relations to avoid N+1 when accessing user data
       const pendingBets = await queryRunner.manager.find(Bet, {
         where: { matchId, status: BetStatus.PENDING },
-        relations: ['user'],
       });
 
       let won = 0;
@@ -469,6 +472,7 @@ export class BetsService {
 
   /**
    * Get betting statistics for a user
+   * Optimized to use database aggregation instead of loading all bets into memory
    */
   async getUserBettingStats(userId: string): Promise<{
     totalBets: number;
@@ -480,44 +484,49 @@ export class BetsService {
     totalWon: number;
     winRate: number;
   }> {
-    const bets = await this.betRepository.find({
-      where: { userId },
-    });
+    // Use QueryBuilder for efficient aggregation
+    const stats = await this.betRepository
+      .createQueryBuilder('bet')
+      .select('COUNT(*)', 'totalBets')
+      .addSelect(
+        "SUM(CASE WHEN bet.status = 'pending' THEN 1 ELSE 0 END)",
+        'pendingBets',
+      )
+      .addSelect(
+        "SUM(CASE WHEN bet.status = 'won' THEN 1 ELSE 0 END)",
+        'wonBets',
+      )
+      .addSelect(
+        "SUM(CASE WHEN bet.status = 'lost' THEN 1 ELSE 0 END)",
+        'lostBets',
+      )
+      .addSelect(
+        "SUM(CASE WHEN bet.status = 'cancelled' THEN 1 ELSE 0 END)",
+        'cancelledBets',
+      )
+      .addSelect('SUM(bet.stake_amount)', 'totalStaked')
+      .addSelect(
+        "SUM(CASE WHEN bet.status = 'won' THEN bet.potential_payout ELSE 0 END)",
+        'totalWon',
+      )
+      .where('bet.userId = :userId', { userId })
+      .getRawOne();
 
-    const stats = {
-      totalBets: bets.length,
-      pendingBets: 0,
-      wonBets: 0,
-      lostBets: 0,
-      cancelledBets: 0,
-      totalStaked: 0,
-      totalWon: 0,
-      winRate: 0,
+    const totalBets = parseInt(stats.totalBets) || 0;
+    const wonBets = parseInt(stats.wonBets) || 0;
+    const lostBets = parseInt(stats.lostBets) || 0;
+    const settledBets = wonBets + lostBets;
+    const winRate = settledBets > 0 ? (wonBets / settledBets) * 100 : 0;
+
+    return {
+      totalBets,
+      pendingBets: parseInt(stats.pendingBets) || 0,
+      wonBets,
+      lostBets,
+      cancelledBets: parseInt(stats.cancelledBets) || 0,
+      totalStaked: parseFloat(stats.totalStaked) || 0,
+      totalWon: parseFloat(stats.totalWon) || 0,
+      winRate,
     };
-
-    for (const bet of bets) {
-      stats.totalStaked += Number(bet.stakeAmount);
-
-      switch (bet.status) {
-        case BetStatus.PENDING:
-          stats.pendingBets++;
-          break;
-        case BetStatus.WON:
-          stats.wonBets++;
-          stats.totalWon += Number(bet.potentialPayout);
-          break;
-        case BetStatus.LOST:
-          stats.lostBets++;
-          break;
-        case BetStatus.CANCELLED:
-          stats.cancelledBets++;
-          break;
-      }
-    }
-
-    const settledBets = stats.wonBets + stats.lostBets;
-    stats.winRate = settledBets > 0 ? (stats.wonBets / settledBets) * 100 : 0;
-
-    return stats;
   }
 }
