@@ -5,6 +5,7 @@ import {
   ManyToMany,
   OneToMany,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Post } from '../../posts/entities/post.entity';
@@ -16,6 +17,9 @@ export enum CategoryStatus {
 }
 
 @Entity('categories')
+@Index(['status'])
+@Index(['slug'])
+@Index(['parentId'])
 export class Category extends BaseEntity {
   @Column({ unique: true })
   name: string;

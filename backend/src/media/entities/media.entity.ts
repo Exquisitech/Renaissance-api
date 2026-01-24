@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -17,6 +17,9 @@ export enum MediaStatus {
 }
 
 @Entity('media')
+@Index(['type'])
+@Index(['status'])
+@Index(['type', 'status'])
 export class Media extends BaseEntity {
   @Column()
   filename: string;

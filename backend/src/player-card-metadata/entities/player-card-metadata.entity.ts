@@ -13,6 +13,10 @@ export enum CardRarity {
 @Entity('player_card_metadata')
 @Index(['contractAddress', 'tokenId'], { unique: true })
 @Index(['playerId'])
+@Index(['rarity'])
+@Index(['isPublished'])
+@Index(['season'])
+@Index(['isPublished', 'rarity'])
 export class PlayerCardMetadata extends BaseEntity {
   @Column({ name: 'player_id' })
   playerId: string;

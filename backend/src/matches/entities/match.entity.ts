@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, OneToMany, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { Prediction } from '../../predictions/entities/prediction.entity';
 
@@ -17,6 +17,11 @@ export enum MatchOutcome {
 }
 
 @Entity('matches')
+@Index(['status'])
+@Index(['startTime'])
+@Index(['league'])
+@Index(['season'])
+@Index(['status', 'startTime'])
 export class Match extends BaseEntity {
   @Column({ name: 'home_team' })
   homeTeam: string;

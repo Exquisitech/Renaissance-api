@@ -12,6 +12,10 @@ export enum PredictionStatus {
 
 @Entity('predictions')
 @Index(['userId', 'matchId'], { unique: true })
+@Index(['userId'])
+@Index(['matchId'])
+@Index(['status'])
+@Index(['userId', 'status'])
 export class Prediction extends BaseEntity {
   @Column({ name: 'user_id' })
   userId: string;

@@ -12,6 +12,12 @@ export enum BetStatus {
 
 @Entity('bets')
 @Index(['userId', 'matchId'], { unique: true })
+@Index(['userId'])
+@Index(['matchId'])
+@Index(['status'])
+@Index(['userId', 'status'])
+@Index(['matchId', 'status'])
+@Index(['settledAt'])
 export class Bet extends BaseEntity {
   @Column({ name: 'user_id' })
   userId: string;

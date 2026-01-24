@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne } from 'typeorm';
+import { Column, Entity, ManyToOne, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -20,6 +20,13 @@ export enum TransactionStatus {
 }
 
 @Entity('transactions')
+@Index(['userId'])
+@Index(['status'])
+@Index(['type'])
+@Index(['userId', 'type'])
+@Index(['userId', 'status'])
+@Index(['referenceId'])
+@Index(['relatedEntityId'])
 export class Transaction extends BaseEntity {
   @Column({ name: 'user_id' })
   userId: string;
