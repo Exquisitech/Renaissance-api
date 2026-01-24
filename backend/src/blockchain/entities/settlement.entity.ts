@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
 export enum SettlementStatus {
@@ -13,6 +14,9 @@ export enum SettlementStatus {
 }
 
 @Entity()
+@Index(['status'])
+@Index(['betId'])
+@Index(['referenceId'])
 export class Settlement {
   @PrimaryGeneratedColumn('uuid')
   id: string;

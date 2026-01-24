@@ -24,6 +24,8 @@ import { PredictionsModule } from './predictions/predictions.module';
 import { validate } from './common/config/env.validation';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { SpinModule } from './spin/spin.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
+
 
 @Module({
   imports: [
@@ -64,13 +66,13 @@ import { SpinModule } from './spin/spin.module';
       Spin,
     ]),
     AuthModule,
-    BlockchainModule,
     BetsModule,
     MatchesModule,
     PlayerCardMetadataModule,
     PostsModule,
     PredictionsModule,
     SpinModule,
+    LeaderboardModule,
   ],
   controllers: [],
   providers: [
