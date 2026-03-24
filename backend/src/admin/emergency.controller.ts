@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  UseGuards,
-  Req,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, UseGuards, Req } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -46,7 +39,8 @@ export class EmergencyController {
   @Post('pause')
   @ApiOperation({
     summary: 'Emergency pause critical operations',
-    description: 'Immediately pause all critical operations. Requires ADMIN role.',
+    description:
+      'Immediately pause all critical operations. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -97,7 +91,8 @@ export class EmergencyController {
   @Post('unpause')
   @ApiOperation({
     summary: 'Emergency unpause critical operations',
-    description: 'Resume critical operations after emergency pause. Requires ADMIN role.',
+    description:
+      'Resume critical operations after emergency pause. Requires ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -139,7 +134,8 @@ export class EmergencyController {
   @Post('freeze-user')
   @ApiOperation({
     summary: 'Emergency freeze user account',
-    description: 'Immediately freeze a user account and prevent all transactions. Requires EMERGENCY_PAUSE or ADMIN role.',
+    description:
+      'Immediately freeze a user account and prevent all transactions. Requires EMERGENCY_PAUSE or ADMIN role.',
   })
   @ApiResponse({
     status: 200,

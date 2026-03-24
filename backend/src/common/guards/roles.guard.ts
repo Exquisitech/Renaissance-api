@@ -66,7 +66,10 @@ export class RolesGuard implements CanActivate {
    * Check if user role meets any of the required roles
    * Supports hierarchical role checking where higher roles can access lower role endpoints
    */
-  private hasRequiredRole(userRole: UserRole, requiredRoles: UserRole[]): boolean {
+  private hasRequiredRole(
+    userRole: UserRole,
+    requiredRoles: UserRole[],
+  ): boolean {
     // Direct match
     if (requiredRoles.includes(userRole)) {
       return true;
@@ -74,10 +77,10 @@ export class RolesGuard implements CanActivate {
 
     // Hierarchical check: higher roles can access endpoints requiring lower roles
     const userRoleIndex = ROLE_HIERARCHY.indexOf(userRole);
-    
+
     for (const requiredRole of requiredRoles) {
       const requiredRoleIndex = ROLE_HIERARCHY.indexOf(requiredRole);
-      
+
       // If user role is higher in hierarchy than required role
       if (userRoleIndex > requiredRoleIndex) {
         return true;

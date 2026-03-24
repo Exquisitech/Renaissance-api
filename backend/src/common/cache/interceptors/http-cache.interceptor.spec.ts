@@ -59,17 +59,24 @@ describe('HttpCacheInterceptor', () => {
     it('should return undefined if NoCache decorator is present', () => {
       mockReflector.get.mockReturnValueOnce(true); // NO_CACHE_METADATA
 
-      const result = interceptor['trackBy'](mockExecutionContext as unknown as ExecutionContext);
+      const result = interceptor['trackBy'](
+        mockExecutionContext as unknown as ExecutionContext,
+      );
 
       expect(result).toBeUndefined();
-      expect(mockReflector.get).toHaveBeenCalledWith(NO_CACHE_METADATA, mockExecutionContext.getHandler());
+      expect(mockReflector.get).toHaveBeenCalledWith(
+        NO_CACHE_METADATA,
+        mockExecutionContext.getHandler(),
+      );
     });
 
     it('should return undefined if not a GET request', () => {
       mockReflector.get.mockReturnValueOnce(undefined); // NO_CACHE_METADATA
       mockHttpAdapterHost.httpAdapter.getRequestMethod.mockReturnValue('POST');
 
-      const result = interceptor['trackBy'](mockExecutionContext as unknown as ExecutionContext);
+      const result = interceptor['trackBy'](
+        mockExecutionContext as unknown as ExecutionContext,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -77,10 +84,14 @@ describe('HttpCacheInterceptor', () => {
     it('should return url if no CacheKey decorator', () => {
       mockReflector.get.mockReturnValueOnce(undefined); // NO_CACHE_METADATA
       mockHttpAdapterHost.httpAdapter.getRequestMethod.mockReturnValue('GET');
-      mockHttpAdapterHost.httpAdapter.getRequestUrl.mockReturnValue('/test-url');
+      mockHttpAdapterHost.httpAdapter.getRequestUrl.mockReturnValue(
+        '/test-url',
+      );
       mockReflector.get.mockReturnValueOnce(undefined); // CACHE_KEY_METADATA
 
-      const result = interceptor['trackBy'](mockExecutionContext as unknown as ExecutionContext);
+      const result = interceptor['trackBy'](
+        mockExecutionContext as unknown as ExecutionContext,
+      );
 
       expect(result).toBe('/test-url');
     });
@@ -88,10 +99,14 @@ describe('HttpCacheInterceptor', () => {
     it('should return custom key combined with url if CacheKey decorator is present', () => {
       mockReflector.get.mockReturnValueOnce(undefined); // NO_CACHE_METADATA
       mockHttpAdapterHost.httpAdapter.getRequestMethod.mockReturnValue('GET');
-      mockHttpAdapterHost.httpAdapter.getRequestUrl.mockReturnValue('/test-url');
+      mockHttpAdapterHost.httpAdapter.getRequestUrl.mockReturnValue(
+        '/test-url',
+      );
       mockReflector.get.mockReturnValueOnce('custom-key'); // CACHE_KEY_METADATA
 
-      const result = interceptor['trackBy'](mockExecutionContext as unknown as ExecutionContext);
+      const result = interceptor['trackBy'](
+        mockExecutionContext as unknown as ExecutionContext,
+      );
 
       expect(result).toBe('custom-key-/test-url');
     });

@@ -290,7 +290,10 @@ export class WalletService {
       return { success: true };
     } catch (error) {
       this.logger.error(`Error updating balance for user ${userId}`, error);
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 

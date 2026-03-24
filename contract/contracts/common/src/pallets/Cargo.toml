@@ -1,0 +1,3 @@
+[dependencies.pallet-reward-mint-gateway]
+default-features = false
+path = "../contracts/common/src/pallets/reward_mint_gateway"

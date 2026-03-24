@@ -1,11 +1,9 @@
 #![no_std]
-use soroban_sdk::{
-    contract, contractimpl, contracttype, token, Address, BytesN, Env, Map, Symbol,
-};
 use common::{
     cleanup_operation, ensure_not_replayed, is_operation_executed, BetPlacedEvent, ContractError,
     SpinExecutedEvent,
 };
+use soroban_sdk::{contract, contractimpl, contracttype, token, Address, BytesN, Env, Map, Symbol};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -95,23 +93,28 @@ impl BettingContract {
             bet_id: Symbol::new(&env, "bet"), // Using a generic symbol or match_id as symbol
             amount,
         };
-        // Note: The common::BetPlacedEvent uses Symbol for bet_id. 
+        // Note: The common::BetPlacedEvent uses Symbol for bet_id.
         // We might want to emit a more detailed event or use Match ID.
         // For now, let's satisfy the criteria with what's available.
-        env.events().publish((Symbol::new(&env, "bet_placed"), match_id.clone()), event);
+        env.events()
+            .publish((Symbol::new(&env, "bet_placed"), match_id.clone()), event);
 
         Ok(())
     }
 
     /// Configure double betting prevention
-    pub fn set_prevent_double_betting(env: Env, admin: Address, prevent: bool) -> Result<(), ContractError> {
+    pub fn set_prevent_double_betting(
+        env: Env,
+        admin: Address,
+        prevent: bool,
+    ) -> Result<(), ContractError> {
         // Only backend signer (acting as admin) can change settings
         // In a real scenario, you'd have a separate admin role
         let storage = env.storage().persistent();
         let backend_signer: Address = storage
             .get(&DataKey::BackendSigner)
             .ok_or(ContractError::Unauthorized)?;
-        
+
         admin.require_auth();
         if admin != backend_signer {
             return Err(ContractError::Unauthorized);
@@ -123,11 +126,14 @@ impl BettingContract {
 
     /// Check if double betting is prevented
     pub fn is_double_betting_prevented(env: Env) -> bool {
-        env.storage().persistent().get(&DataKey::PreventDoubleBetting).unwrap_or(false)
+        env.storage()
+            .persistent()
+            .get(&DataKey::PreventDoubleBetting)
+            .unwrap_or(false)
     }
 
     /// Execute a spin with backend signature verification
-    /// 
+    ///
     /// # Arguments
     /// * `spin_id` - Unique identifier for the spin (32-byte hash)
     /// * `spin_hash` - Hash of spin parameters for replay protection
@@ -204,7 +210,8 @@ impl BettingContract {
             timestamp: current_time,
         };
 
-        env.events().publish((Symbol::new(&env, "spin_executed"),), event);
+        env.events()
+            .publish((Symbol::new(&env, "spin_executed"),), event);
 
         Ok(())
     }
@@ -220,7 +227,10 @@ impl BettingContract {
     }
 
     /// Get spin execution details
-    pub fn get_spin_execution(env: Env, spin_id: BytesN<32>) -> Result<SpinExecution, ContractError> {
+    pub fn get_spin_execution(
+        env: Env,
+        spin_id: BytesN<32>,
+    ) -> Result<SpinExecution, ContractError> {
         let storage = env.storage().persistent();
         let executions: Map<BytesN<32>, SpinExecution> = storage
             .get(&DataKey::SpinExecutions)

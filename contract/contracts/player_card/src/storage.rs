@@ -51,11 +51,11 @@ pub fn get_owner(env: &Env, token_id: u64) -> Address {
 
 pub fn set_owner(env: &Env, token_id: u64, owner: &Address) {
     let key = (String::from_str(env, TOKEN_OWNER), token_id);
-    
+
     if let Some(old_owner) = env.storage().instance().get::<_, Address>(&key) {
         remove_token_from_owner(env, &old_owner, token_id);
     }
-    
+
     env.storage().instance().set(&key, owner);
     add_token_to_owner(env, owner, token_id);
 }
@@ -91,7 +91,7 @@ pub fn add_token_to_owner(env: &Env, owner: &Address, token_id: u64) {
 pub fn remove_token_from_owner(env: &Env, owner: &Address, token_id: u64) {
     let key = (String::from_str(env, OWNER_TOKENS), owner);
     let mut tokens = get_tokens_of_owner(env, owner.clone());
-    
+
     let index = tokens.iter().position(|id| id == token_id);
     if let Some(index) = index {
         tokens.remove(index as u32);

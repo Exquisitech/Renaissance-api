@@ -238,7 +238,9 @@ export class LeaderboardService {
    * Handle spin settled events
    * Updates betting-like statistics for leaderboard (atomic)
    */
-  async handleSpinSettled(event: import('./domain/events').SpinSettledEvent): Promise<void> {
+  async handleSpinSettled(
+    event: import('./domain/events').SpinSettledEvent,
+  ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

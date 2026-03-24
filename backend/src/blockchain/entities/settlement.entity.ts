@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-} from 'typeorm';
+import { Entity, Column, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 
 export enum SettlementStatus {
@@ -14,13 +10,13 @@ export enum SettlementStatus {
 @Entity()
 @Index(['status'])
 @Index(['betId'])
-  @Index(['referenceId'])
-  export class Settlement extends BaseEntity {
-    @Column({ unique: true })
-    referenceId: string;
-  
-    @Column()
-    betId: string;
+@Index(['referenceId'])
+export class Settlement extends BaseEntity {
+  @Column({ unique: true })
+  referenceId: string;
+
+  @Column()
+  betId: string;
 
   @Column('decimal', { precision: 18, scale: 7 })
   amount: number;

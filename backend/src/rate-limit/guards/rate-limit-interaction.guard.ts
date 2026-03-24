@@ -1,10 +1,9 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { RateLimitInteractionService, InteractionAction } from '../rate-limit-interaction.service';
+import {
+  RateLimitInteractionService,
+  InteractionAction,
+} from '../rate-limit-interaction.service';
 
 export const RATE_LIMIT_ACTION_KEY = 'rate_limit_action';
 
@@ -29,8 +28,7 @@ export class RateLimitInteractionGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const userId: string | undefined =
-      request.user?.userId ?? request.user?.id;
+    const userId: string | undefined = request.user?.userId ?? request.user?.id;
     if (!userId) {
       return true; // Auth guard will handle unauthenticated
     }

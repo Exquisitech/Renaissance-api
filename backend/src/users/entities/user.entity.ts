@@ -10,7 +10,7 @@ export enum UserRole {
   // Standard user roles
   USER = 'user',
   MODERATOR = 'moderator',
-  
+
   // Privileged contract action roles
   ADMIN = 'admin',
   BACKEND_EXECUTOR = 'backend_executor',

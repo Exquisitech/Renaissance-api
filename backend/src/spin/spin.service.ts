@@ -145,17 +145,18 @@ export class SpinService {
       }
 
       // Deduct stake amount from wallet using the same QueryRunner (locks user's row)
-      const walletResult = await this.walletService.updateUserBalanceWithQueryRunner(
-        queryRunner,
-        userId,
-        -createSpinDto.stakeAmount,
-        TransactionType.BET_PLACEMENT,
-        undefined,
-        {
-          spinStake: createSpinDto.stakeAmount,
-          sessionId,
-        },
-      );
+      const walletResult =
+        await this.walletService.updateUserBalanceWithQueryRunner(
+          queryRunner,
+          userId,
+          -createSpinDto.stakeAmount,
+          TransactionType.BET_PLACEMENT,
+          undefined,
+          {
+            spinStake: createSpinDto.stakeAmount,
+            sessionId,
+          },
+        );
 
       if (!walletResult.success) {
         throw new BadRequestException(
@@ -175,7 +176,9 @@ export class SpinService {
         ]);
       } catch (scError) {
         this.logger.error('Treasury check failed on-chain', scError);
-        throw new BadRequestException('Treasury unavailable for requested payout');
+        throw new BadRequestException(
+          'Treasury unavailable for requested payout',
+        );
       }
 
       // Create spin record
@@ -206,7 +209,8 @@ export class SpinService {
           rewardChannel = 'FREE_BET';
         }
 
-        const isWithdrawable = !createSpinDto.isFreeBet && rewardChannel === 'XLM';
+        const isWithdrawable =
+          !createSpinDto.isFreeBet && rewardChannel === 'XLM';
 
         if (rewardChannel === 'FREE_BET') {
           const expiresAt = new Date();

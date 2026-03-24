@@ -1,9 +1,4 @@
-import {
-  Column,
-  Entity,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 export const RATE_LIMIT_CONFIG_KEYS = {
   INTERACTION_COOLDOWN_SECONDS: 'interaction_cooldown_seconds',

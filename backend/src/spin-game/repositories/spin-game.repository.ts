@@ -38,7 +38,7 @@ export class SpinGameRepository {
     limit: number = 20,
   ): Promise<{ spins: SpinGame[]; total: number }> {
     const skip = (page - 1) * limit;
-    
+
     const [spins, total] = await Promise.all([
       this.spinGameRepo.find({
         where: { userId },
@@ -48,7 +48,7 @@ export class SpinGameRepository {
       }),
       this.spinGameRepo.count({ where: { userId } }),
     ]);
-    
+
     return { spins, total };
   }
 
@@ -66,7 +66,7 @@ export class SpinGameRepository {
       totalWon: 0,
       lastResetDate: new Date(),
     });
-    
+
     return await this.userStatsRepo.save(stats);
   }
 
@@ -78,7 +78,7 @@ export class SpinGameRepository {
     if (!stats) {
       return await this.createUserStats(userId);
     }
-    
+
     Object.assign(stats, updates);
     return await this.userStatsRepo.save(stats);
   }
@@ -86,7 +86,7 @@ export class SpinGameRepository {
   async resetDailyStatsIfNeeded(stats: UserSpinStats): Promise<UserSpinStats> {
     const today = new Date();
     const lastReset = new Date(stats.lastResetDate);
-    
+
     // Check if we need to reset daily stats
     if (
       lastReset.getDate() !== today.getDate() ||
@@ -97,11 +97,13 @@ export class SpinGameRepository {
       stats.lastResetDate = today;
       return await this.userStatsRepo.save(stats);
     }
-    
+
     return stats;
   }
 
-  async createFreeBet(freeBetData: Partial<FreeBetReward>): Promise<FreeBetReward> {
+  async createFreeBet(
+    freeBetData: Partial<FreeBetReward>,
+  ): Promise<FreeBetReward> {
     const freeBet = this.freeBetRepo.create(freeBetData);
     return await this.freeBetRepo.save(freeBet);
   }
@@ -134,7 +136,7 @@ export class SpinGameRepository {
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    
+
     return await this.spinGameRepo.find({
       where: {
         userId,
@@ -164,8 +166,8 @@ export class SpinGameRepository {
     return await this.spinGameRepo
       .createQueryBuilder('spin')
       .where('spin.win_amount > :threshold', { threshold })
-      .andWhere('spin.reward_type = :rewardType', { 
-        rewardType: RewardType.XLM_REWARD 
+      .andWhere('spin.reward_type = :rewardType', {
+        rewardType: RewardType.XLM_REWARD,
       })
       .andWhere('spin.is_suspicious = :suspicious', { suspicious: false })
       .orderBy('spin.win_amount', 'DESC')
@@ -192,11 +194,11 @@ export class SpinGameRepository {
       })
       .andWhere('spin.status = :status', { status: SpinStatus.COMPLETED })
       .getRawOne();
-    
+
     const totalStaked = parseFloat(result.totalStaked) || 0;
     const totalWon = parseFloat(result.totalWon) || 0;
     const houseProfit = totalStaked - totalWon;
-    
+
     return {
       totalSpins: parseInt(result.totalSpins) || 0,
       totalStaked,

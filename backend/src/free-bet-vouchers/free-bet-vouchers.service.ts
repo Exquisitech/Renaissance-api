@@ -35,7 +35,10 @@ export class FreeBetVoucherService {
   async createVoucher(
     createVoucherDto: CreateFreeBetVoucherDto,
   ): Promise<FreeBetVoucher> {
-    return this.createVoucherWithManager(this.dataSource.manager, createVoucherDto);
+    return this.createVoucherWithManager(
+      this.dataSource.manager,
+      createVoucherDto,
+    );
   }
 
   async createVoucherWithManager(

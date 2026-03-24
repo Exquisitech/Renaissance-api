@@ -4,5 +4,4 @@ export interface RequestContext {
   correlationId: string;
 }
 
-export const RequestContextStorage =
-  new AsyncLocalStorage<RequestContext>();
+export const RequestContextStorage = new AsyncLocalStorage<RequestContext>();

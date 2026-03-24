@@ -1,9 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-  BeforeUpdate,
-} from 'typeorm';
+import { Entity, Column, Index, BeforeUpdate } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 
 /**
@@ -38,9 +33,7 @@ export enum SpinSessionStatus {
 @Entity('spin_sessions')
 @Index(['userId', 'createdAt'])
 @Index(['userId'])
-
 export class SpinSession extends BaseEntity {
-
   @Column('uuid')
   @Index()
   userId: string;
@@ -54,7 +47,10 @@ export class SpinSession extends BaseEntity {
   @Column('decimal', { precision: 18, scale: 8, default: 0 })
   rewardValue: number;
 
-  @Column('enum', { enum: SpinSessionStatus, default: SpinSessionStatus.PENDING })
+  @Column('enum', {
+    enum: SpinSessionStatus,
+    default: SpinSessionStatus.PENDING,
+  })
   status: SpinSessionStatus;
 
   @Column('varchar', { length: 255, nullable: true })

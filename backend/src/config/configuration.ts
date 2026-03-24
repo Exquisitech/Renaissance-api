@@ -27,8 +27,11 @@ export default () => ({
   blockchain: {
     stellar: {
       network: process.env.STELLAR_NETWORK || 'TESTNET',
-      rpcUrl: process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
-      networkPassphrase: process.env.STELLAR_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015',
+      rpcUrl:
+        process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
+      networkPassphrase:
+        process.env.STELLAR_NETWORK_PASSPHRASE ||
+        'Test SDF Network ; September 2015',
     },
     soroban: {
       contractId: process.env.SOROBAN_CONTRACT_ID,
@@ -55,7 +58,10 @@ export default () => ({
     },
     events: {
       enabled: process.env.CONTRACT_EVENTS_ENABLED !== 'false',
-      pollIntervalMs: parseInt(process.env.CONTRACT_EVENTS_POLL_INTERVAL_MS || '5000', 10),
+      pollIntervalMs: parseInt(
+        process.env.CONTRACT_EVENTS_POLL_INTERVAL_MS || '5000',
+        10,
+      ),
       pageLimit: parseInt(process.env.CONTRACT_EVENTS_PAGE_LIMIT || '100', 10),
       processingRetryAttempts: parseInt(
         process.env.CONTRACT_EVENTS_PROCESSING_RETRY_ATTEMPTS || '3',
@@ -69,7 +75,10 @@ export default () => ({
         process.env.CONTRACT_EVENTS_RECONNECT_MAX_DELAY_MS || '30000',
         10,
       ),
-      startLedger: parseInt(process.env.CONTRACT_EVENTS_START_LEDGER || '0', 10),
+      startLedger: parseInt(
+        process.env.CONTRACT_EVENTS_START_LEDGER || '0',
+        10,
+      ),
     },
   },
 });

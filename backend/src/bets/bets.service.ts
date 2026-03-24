@@ -57,7 +57,6 @@ export class BetsService {
     private readonly rateLimitService: RateLimitInteractionService,
   ) {}
 
-
   /**
    * Place a bet on a match
    * Uses transaction to ensure atomic operations between wallet deduction and bet creation
@@ -175,7 +174,7 @@ export class BetsService {
       // Note: The new WalletService might not expose easy access to the last transaction entity directly in the same way,
       // but we passed metadata. If we need to link explicitly, we might need to adjust WalletService.
       // For now, skipping explicit linking as WalletService handles its own transaction logs.
-      
+
       await queryRunner.commitTransaction();
 
       // Emit BetPlacedEvent for leaderboard updates
@@ -347,18 +346,21 @@ export class BetsService {
     // Note: Assuming we want to treat manual updates similar to settlement
     // We construct a settlement event
     const isWin = savedBet.status === BetStatus.WON;
-    if (savedBet.status === BetStatus.WON || savedBet.status === BetStatus.LOST) {
-        this.eventBus.publish(
-            new BetSettledEvent(
-                savedBet.userId,
-                savedBet.id,
-                savedBet.matchId,
-                isWin,
-                Number(savedBet.stakeAmount),
-                isWin ? Number(savedBet.potentialPayout) : 0,
-                0 // Accuracy calculated by handler
-            )
-        );
+    if (
+      savedBet.status === BetStatus.WON ||
+      savedBet.status === BetStatus.LOST
+    ) {
+      this.eventBus.publish(
+        new BetSettledEvent(
+          savedBet.userId,
+          savedBet.id,
+          savedBet.matchId,
+          isWin,
+          Number(savedBet.stakeAmount),
+          isWin ? Number(savedBet.potentialPayout) : 0,
+          0, // Accuracy calculated by handler
+        ),
+      );
     }
 
     return savedBet;

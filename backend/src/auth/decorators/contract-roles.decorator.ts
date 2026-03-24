@@ -50,7 +50,8 @@ export const ContractAction = (
       schema: {
         example: {
           statusCode: 403,
-          message: 'Access denied: Insufficient permissions for contract action',
+          message:
+            'Access denied: Insufficient permissions for contract action',
           error: 'Forbidden',
           requiredRoles: roles,
           action,

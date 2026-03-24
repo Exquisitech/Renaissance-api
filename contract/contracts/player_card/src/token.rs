@@ -22,7 +22,7 @@ impl PlayerCardToken {
     pub fn approve(env: Env, approved: Address, token_id: u64) {
         let owner = storage::get_owner(&env, token_id);
         owner.require_auth();
-        
+
         let key = ("approval", token_id);
         env.storage().instance().set(&key, &approved);
     }
@@ -37,11 +37,11 @@ impl PlayerCardToken {
         if spender == owner {
             return true;
         }
-        
+
         if let Some(approved) = Self::get_approved(env, token_id) {
             return spender == approved;
         }
-        
+
         false
     }
 }

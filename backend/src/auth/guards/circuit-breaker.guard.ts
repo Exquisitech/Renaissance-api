@@ -22,10 +22,11 @@ export class CircuitBreakerGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const criticalAction = this.reflector.getAllAndOverride<CriticalActionMetadata>(
-      CRITICAL_ACTION_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const criticalAction =
+      this.reflector.getAllAndOverride<CriticalActionMetadata>(
+        CRITICAL_ACTION_KEY,
+        [context.getHandler(), context.getClass()],
+      );
 
     if (!criticalAction) {
       return true;

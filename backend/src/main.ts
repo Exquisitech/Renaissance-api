@@ -9,12 +9,13 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);    
+  const app = await NestFactory.create(AppModule);
 
   const logger = app.get(AppLogger);
 
-     app.useGlobalInterceptors(new LoggingInterceptor(logger));
-      app.useGlobalFilters(new GlobalExceptionFilter(logger));
+  // Global interceptors and filters
+  app.useGlobalInterceptors(new LoggingInterceptor(logger));
+  app.useGlobalFilters(new GlobalExceptionFilter(logger));
 
   // Backward compatibility middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -24,6 +25,7 @@ async function bootstrap() {
     next();
   });
 
+  // Global prefix and versioning
   app.setGlobalPrefix('api');
   app.enableVersioning({
     type: VersioningType.URI,
@@ -33,9 +35,9 @@ async function bootstrap() {
   // Global validation pipeline
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, 
-      forbidNonWhitelisted: true, 
-      transform: true, 
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
       transformOptions: {
         enableImplicitConversion: true,
       },
@@ -58,7 +60,7 @@ async function bootstrap() {
         description: 'Enter JWT token',
         in: 'header',
       },
-      'JWT-auth', // This name will be used in controllers
+      'JWT-auth',
     )
     .addTag('Authentication', 'User authentication and authorization endpoints')
     .addTag('Player Cards', 'Player card metadata and NFT management')
@@ -73,7 +75,6 @@ async function bootstrap() {
       operationsSorter: 'alpha',
     },
   });
-  
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port') ?? 3000;

@@ -32,9 +32,7 @@ interface AuthenticatedRequest extends Request {
 @Controller('free-bet-vouchers')
 @UseGuards(JwtAuthGuard)
 export class FreeBetVouchersController {
-  constructor(
-    private readonly freeBetVoucherService: FreeBetVoucherService,
-  ) {}
+  constructor(private readonly freeBetVoucherService: FreeBetVoucherService) {}
 
   /**
    * Create a free bet voucher (admin). Used e.g. for spin rewards.

@@ -43,7 +43,8 @@ export class SettlementController {
   @ApiParam({ name: 'betId', description: 'Bet ID to settle' })
   @ApiOperation({
     summary: 'Settle a bet on blockchain',
-    description: 'Initiate settlement for a bet. Requires BACKEND_EXECUTOR or ADMIN role.',
+    description:
+      'Initiate settlement for a bet. Requires BACKEND_EXECUTOR or ADMIN role.',
   })
   @ApiResponse({
     status: 200,
@@ -70,7 +71,8 @@ export class SettlementController {
   @BackendExecutorAction('reconcile_settlements')
   @ApiOperation({
     summary: 'Reconcile pending settlements',
-    description: 'Check and update status of pending blockchain settlements. Requires BACKEND_EXECUTOR or ADMIN role.',
+    description:
+      'Check and update status of pending blockchain settlements. Requires BACKEND_EXECUTOR or ADMIN role.',
   })
   @ApiResponse({
     status: 200,

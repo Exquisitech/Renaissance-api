@@ -1,12 +1,27 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { AdminAuditLog, AdminActionType } from './entities/admin-audit-log.entity';
+import {
+  AdminAuditLog,
+  AdminActionType,
+} from './entities/admin-audit-log.entity';
 import { Bet, BetStatus } from '../bets/entities/bet.entity';
 import { User } from '../users/entities/user.entity';
 import { Match } from '../matches/entities/match.entity';
-import { Transaction, TransactionType, TransactionStatus } from '../transactions/entities/transaction.entity';
-import { CancelBetDto, CorrectBalanceDto, CorrectMatchDto } from './dto/admin.dto';
+import {
+  Transaction,
+  TransactionType,
+  TransactionStatus,
+} from '../transactions/entities/transaction.entity';
+import {
+  CancelBetDto,
+  CorrectBalanceDto,
+  CorrectMatchDto,
+} from './dto/admin.dto';
 
 @Injectable()
 export class AdminService {
@@ -27,7 +42,11 @@ export class AdminService {
   /**
    * Cancel a bet and refund the stake amount to the user
    */
-  async cancelBet(betId: string, adminId: string, dto: CancelBetDto): Promise<Bet> {
+  async cancelBet(
+    betId: string,
+    adminId: string,
+    dto: CancelBetDto,
+  ): Promise<Bet> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -122,7 +141,11 @@ export class AdminService {
   /**
    * Correct a user's wallet balance
    */
-  async correctBalance(userId: string, adminId: string, dto: CorrectBalanceDto): Promise<User> {
+  async correctBalance(
+    userId: string,
+    adminId: string,
+    dto: CorrectBalanceDto,
+  ): Promise<User> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -151,9 +174,10 @@ export class AdminService {
 
       // Create adjustment transaction
       const adjustmentAmount = newBalance - previousBalance;
-      const transactionType = adjustmentAmount > 0
-        ? TransactionType.WALLET_DEPOSIT
-        : TransactionType.WALLET_WITHDRAWAL;
+      const transactionType =
+        adjustmentAmount > 0
+          ? TransactionType.WALLET_DEPOSIT
+          : TransactionType.WALLET_WITHDRAWAL;
 
       const transaction = this.transactionRepository.create({
         userId,
@@ -202,7 +226,11 @@ export class AdminService {
   /**
    * Correct match details (scores)
    */
-  async correctMatch(matchId: string, adminId: string, dto: CorrectMatchDto): Promise<Match> {
+  async correctMatch(
+    matchId: string,
+    adminId: string,
+    dto: CorrectMatchDto,
+  ): Promise<Match> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -295,7 +323,8 @@ export class AdminService {
     page: number = 1,
     limit: number = 50,
   ): Promise<{ data: AdminAuditLog[]; total: number }> {
-    const query = this.auditLogRepository.createQueryBuilder('log')
+    const query = this.auditLogRepository
+      .createQueryBuilder('log')
       .where('log.affectedUserId = :userId', { userId });
 
     const total = await query.getCount();

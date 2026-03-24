@@ -5,9 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * - user_last_interaction: last interaction timestamp per user (spin & staking)
  * - rate_limit_config: admin-configurable cooldown period
  */
-export class AddRateLimitInteractionLayer1769500000000
-  implements MigrationInterface
-{
+export class AddRateLimitInteractionLayer1769500000000 implements MigrationInterface {
   name = 'AddRateLimitInteractionLayer1769500000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

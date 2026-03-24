@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Prediction, PredictionStatus } from './entities/prediction.entity';
@@ -14,11 +19,16 @@ export class PredictionsService {
     private readonly matchRepository: Repository<Match>,
   ) {}
 
-  async create(userId: string, createPredictionDto: CreatePredictionDto): Promise<Prediction> {
+  async create(
+    userId: string,
+    createPredictionDto: CreatePredictionDto,
+  ): Promise<Prediction> {
     const { matchId, predictedOutcome } = createPredictionDto;
 
     // 1. Check if match exists
-    const match = await this.matchRepository.findOne({ where: { id: matchId } });
+    const match = await this.matchRepository.findOne({
+      where: { id: matchId },
+    });
     if (!match) {
       throw new NotFoundException(`Match with ID ${matchId} not found`);
     }
@@ -26,7 +36,9 @@ export class PredictionsService {
     // 2. Validate match hasn't started yet
     const now = new Date();
     if (new Date(match.startTime) <= now) {
-      throw new BadRequestException('Cannot predict outcome for a match that has already started');
+      throw new BadRequestException(
+        'Cannot predict outcome for a match that has already started',
+      );
     }
 
     // 3. Check for existing prediction (Duplicate prevention at service level)
@@ -34,7 +46,9 @@ export class PredictionsService {
       where: { userId, matchId },
     });
     if (existing) {
-      throw new ConflictException('You have already made a prediction for this match');
+      throw new ConflictException(
+        'You have already made a prediction for this match',
+      );
     }
 
     // 4. Create and save prediction
@@ -49,8 +63,11 @@ export class PredictionsService {
       return await this.predictionRepository.save(prediction);
     } catch (error) {
       // Handle potential race conditions that hit the DB unique constraint
-      if (error.code === '23505') { // Postgres unique_violation code
-        throw new ConflictException('You have already made a prediction for this match');
+      if (error.code === '23505') {
+        // Postgres unique_violation code
+        throw new ConflictException(
+          'You have already made a prediction for this match',
+        );
       }
       throw error;
     }

@@ -131,11 +131,7 @@ export class StakingService {
 
       // Emit StakeDebitedEvent for leaderboard updates (staking locks/debits funds)
       this.eventBus.publish(
-        new StakeDebitedEvent(
-          userId,
-          Number(amount),
-          'stake',
-        ),
+        new StakeDebitedEvent(userId, Number(amount), 'stake'),
       );
 
       return {

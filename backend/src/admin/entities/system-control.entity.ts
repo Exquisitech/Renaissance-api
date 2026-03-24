@@ -18,6 +18,11 @@ export class SystemControl {
   @Column({ name: 'pause_reason', type: 'text', nullable: true })
   pauseReason: string | null;
 
-  @Column({ name: 'last_updated_by', type: 'varchar', length: 64, nullable: true })
+  @Column({
+    name: 'last_updated_by',
+    type: 'varchar',
+    length: 64,
+    nullable: true,
+  })
   lastUpdatedBy: string | null;
 }

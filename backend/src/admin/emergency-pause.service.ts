@@ -40,7 +40,10 @@ export class EmergencyPauseService {
     return control.isPaused;
   }
 
-  async pause(reason: string, pausedBy: string | null): Promise<EmergencyPauseStatus> {
+  async pause(
+    reason: string,
+    pausedBy: string | null,
+  ): Promise<EmergencyPauseStatus> {
     const control = await this.getOrCreateGlobalControl();
     const now = new Date();
 
@@ -54,12 +57,17 @@ export class EmergencyPauseService {
     this.eventBus.publish(
       new EmergencyPausedEvent(pausedBy, reason, now.toISOString()),
     );
-    this.logger.warn(`Global emergency pause enabled by ${pausedBy ?? 'unknown'}: ${reason}`);
+    this.logger.warn(
+      `Global emergency pause enabled by ${pausedBy ?? 'unknown'}: ${reason}`,
+    );
 
     return this.getStatus();
   }
 
-  async unpause(reason: string, unpausedBy: string | null): Promise<EmergencyPauseStatus> {
+  async unpause(
+    reason: string,
+    unpausedBy: string | null,
+  ): Promise<EmergencyPauseStatus> {
     const control = await this.getOrCreateGlobalControl();
     const now = new Date();
 
@@ -73,7 +81,9 @@ export class EmergencyPauseService {
     this.eventBus.publish(
       new EmergencyUnpausedEvent(unpausedBy, reason, now.toISOString()),
     );
-    this.logger.warn(`Global emergency pause disabled by ${unpausedBy ?? 'unknown'}: ${reason}`);
+    this.logger.warn(
+      `Global emergency pause disabled by ${unpausedBy ?? 'unknown'}: ${reason}`,
+    );
 
     return this.getStatus();
   }

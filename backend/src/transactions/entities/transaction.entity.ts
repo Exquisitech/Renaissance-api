@@ -58,7 +58,7 @@ export class Transaction extends BaseEntity {
 
   @ManyToOne(() => User, (user) => user.transactions)
   user: User;
-  
+
   @Column({ name: 'is_withdrawable', type: 'boolean', default: true })
   isWithdrawable: boolean;
 }

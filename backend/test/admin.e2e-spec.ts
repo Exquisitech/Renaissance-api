@@ -7,7 +7,7 @@ import { AdminModule } from '../src/admin/admin.module';
 
 /**
  * Admin Moderation & Override Tools - Integration Tests
- * 
+ *
  * This test suite demonstrates how to use the admin moderation endpoints.
  * These are example tests - actual implementation would include full test setup.
  */
@@ -96,7 +96,6 @@ describe('Admin Moderation (e2e)', () => {
       //   .post(`/admin/bets/${betId}/cancel`)
       //   .set('Authorization', `Bearer ${adminToken}`)
       //   .send({});
-
       // ASSERT
       // expect(response.status).toBe(400);
     });
@@ -107,7 +106,8 @@ describe('Admin Moderation (e2e)', () => {
       // ARRANGE
       const correctBalanceDto = {
         newBalance: '5000.50000000',
-        reason: 'Balance correction due to bug in deposit calculation - ticket #4521',
+        reason:
+          'Balance correction due to bug in deposit calculation - ticket #4521',
       };
 
       // ACT
@@ -236,7 +236,6 @@ describe('Admin Moderation (e2e)', () => {
       // const response = await request(app.getHttpServer())
       //   .get('/admin/audit-logs?page=1&limit=50')
       //   .set('Authorization', `Bearer ${adminToken}`);
-
       // ASSERT
       // expect(response.status).toBe(200);
       // expect(response.body.data).toBeInstanceOf(Array);
@@ -250,7 +249,6 @@ describe('Admin Moderation (e2e)', () => {
       // const response = await request(app.getHttpServer())
       //   .get('/admin/audit-logs?actionType=bet_cancelled&page=1&limit=50')
       //   .set('Authorization', `Bearer ${adminToken}`);
-
       // ASSERT
       // expect(response.status).toBe(200);
       // response.body.data.forEach((log) => {
@@ -263,7 +261,6 @@ describe('Admin Moderation (e2e)', () => {
       // const response = await request(app.getHttpServer())
       //   .get('/admin/audit-logs?page=1&limit=50')
       //   .set('Authorization', `Bearer ${userToken}`);
-
       // ASSERT
       // expect(response.status).toBe(403);
     });
@@ -272,7 +269,6 @@ describe('Admin Moderation (e2e)', () => {
       // ACT
       // const response = await request(app.getHttpServer())
       //   .get('/admin/audit-logs?page=1&limit=50');
-
       // ASSERT
       // expect(response.status).toBe(401);
     });
@@ -284,7 +280,6 @@ describe('Admin Moderation (e2e)', () => {
       // const response = await request(app.getHttpServer())
       //   .get(`/admin/users/${userId}/audit-logs?page=1&limit=50`)
       //   .set('Authorization', `Bearer ${adminToken}`);
-
       // ASSERT
       // expect(response.status).toBe(200);
       // expect(response.body.data).toBeInstanceOf(Array);

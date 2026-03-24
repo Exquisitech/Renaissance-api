@@ -41,12 +41,22 @@ import { LoggerModule } from './common/logger/logger.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { SpinGameModule } from './spin-game/spin-game.module';
 import { Leaderboard } from './leaderboard/entities/leaderboard.entity';
+import { ProgressModule } from './progress/progress.module';
+import { SolvencyModule } from './solvency/solvency.module';
+import { AuditModule } from './audit/audit.module';
 import { CircuitBreakerGuard } from './auth/guards/circuit-breaker.guard';
 import { RateLimitModule } from './rate-limit/rate-limit.module';
 import { EventListenerModule } from './common/events/event-listener.module';
 import { BetSettlementModule } from './bet-settlement/bet-settlement.module';
 import { OddsModule } from './odds/odds.module';
+// import { NFTModule } from './nft/nft.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { Achievement } from './gamification/entities/achievement.entity';
+import { UserAchievement } from './gamification/entities/user-achievement.entity';
 
+// Custom role-based guard
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 
 @Module({
   imports: [
@@ -65,7 +75,7 @@ import { OddsModule } from './odds/odds.module';
         throttlers: [
           {
             ttl: config.get<number>('THROTTLE_TTL', 60000), // 60 seconds
-            limit: config.get<number>('THROTTLE_LIMIT', 10), // 10 requests
+            limit: config.get<number>('THROTTLE_LIMIT', 10), // default 10 requests/min
           },
         ],
       }),
@@ -91,6 +101,8 @@ import { OddsModule } from './odds/odds.module';
       Spin,
       SpinSession,
       UserLeaderboardStats,
+      Achievement,
+      UserAchievement,
     ]),
     SpinGameModule,
     RateLimitModule,
@@ -111,11 +123,21 @@ import { OddsModule } from './odds/odds.module';
     ReconciliationModule,
     LoggerModule,
     EventListenerModule,
+    // NFTModule,
+    ProgressModule,
+    SolvencyModule,
+    AuditModule,
+    NotificationsModule,
+    GamificationModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: ThrottlerGuard, // baseline throttling
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RateLimitGuard, // role-based limits
     },
     {
       provide: APP_GUARD,

@@ -1,9 +1,11 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 
-export const getTypeOrmConfig = (configService: ConfigService): DataSourceOptions => {
+export const getTypeOrmConfig = (
+  configService: ConfigService,
+): DataSourceOptions => {
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
-  
+
   return {
     type: 'postgres',
     host: configService.get<string>('DB_HOST', 'localhost'),
@@ -23,5 +25,5 @@ export const getTypeOrmConfig = (configService: ConfigService): DataSourceOption
 };
 
 // Export function for runtime usage in NestJS
-export const AppDataSource = (configService: ConfigService) => 
+export const AppDataSource = (configService: ConfigService) =>
   new DataSource(getTypeOrmConfig(configService));

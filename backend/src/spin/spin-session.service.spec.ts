@@ -4,368 +4,371 @@ import { Repository } from 'typeorm';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { SpinSessionService } from './spin-session.service';
 import {
-    SpinSession,
-    SpinSessionStatus,
-    RewardType,
+  SpinSession,
+  SpinSessionStatus,
+  RewardType,
 } from './entities/spin-session.entity';
 import { CreateSpinSessionDto } from './dto/create-spin-session.dto';
 
 describe('SpinSessionService', () => {
-    let service: SpinSessionService;
-    let repository: Repository<SpinSession>;
+  let service: SpinSessionService;
+  let repository: Repository<SpinSession>;
 
-    const mockRepository = {
-        create: jest.fn(),
-        save: jest.fn(),
-        findOne: jest.fn(),
-        find: jest.fn(),
-    };
+  const mockRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
 
-    const mockUserId = 'user-123';
-    const mockSessionId = 'session-456';
+  const mockUserId = 'user-123';
+  const mockSessionId = 'session-456';
 
-    const createMockSession = (overrides?: Partial<SpinSession>): SpinSession => ({
-        id: mockSessionId,
+  const createMockSession = (
+    overrides?: Partial<SpinSession>,
+  ): SpinSession => ({
+    id: mockSessionId,
+    userId: mockUserId,
+    stakeAmount: 10,
+    rewardType: RewardType.NONE,
+    rewardValue: 0,
+    status: SpinSessionStatus.PENDING,
+    txReference: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    preventUpdateAfterCompletion: jest.fn(),
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SpinSessionService,
+        {
+          provide: getRepositoryToken(SpinSession),
+          useValue: mockRepository,
+        },
+      ],
+    }).compile();
+
+    service = module.get<SpinSessionService>(SpinSessionService);
+    repository = module.get<Repository<SpinSession>>(
+      getRepositoryToken(SpinSession),
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('create', () => {
+    it('should create a new spin session with default values', async () => {
+      const createDto: CreateSpinSessionDto = { stakeAmount: 10 };
+      const mockSession = createMockSession();
+
+      mockRepository.create.mockReturnValue(mockSession);
+      mockRepository.save.mockResolvedValue(mockSession);
+
+      const result = await service.create(mockUserId, createDto);
+
+      expect(mockRepository.create).toHaveBeenCalledWith({
         userId: mockUserId,
         stakeAmount: 10,
         rewardType: RewardType.NONE,
         rewardValue: 0,
         status: SpinSessionStatus.PENDING,
         txReference: null,
-        createdAt: new Date(),
-        preventUpdateAfterCompletion: jest.fn(),
-        ...overrides,
+      });
+      expect(mockRepository.save).toHaveBeenCalledWith(mockSession);
+      expect(result).toEqual(mockSession);
     });
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [
-                SpinSessionService,
-                {
-                    provide: getRepositoryToken(SpinSession),
-                    useValue: mockRepository,
-                },
-            ],
-        }).compile();
+    it('should create a spin session with provided reward type and value', async () => {
+      const createDto: CreateSpinSessionDto = {
+        stakeAmount: 25,
+        rewardType: RewardType.TOKENS,
+        rewardValue: 100,
+        txReference: 'tx-abc123',
+      };
+      const mockSession = createMockSession({
+        stakeAmount: 25,
+        rewardType: RewardType.TOKENS,
+        rewardValue: 100,
+        txReference: 'tx-abc123',
+      });
 
-        service = module.get<SpinSessionService>(SpinSessionService);
-        repository = module.get<Repository<SpinSession>>(
-            getRepositoryToken(SpinSession),
-        );
+      mockRepository.create.mockReturnValue(mockSession);
+      mockRepository.save.mockResolvedValue(mockSession);
+
+      const result = await service.create(mockUserId, createDto);
+
+      expect(mockRepository.create).toHaveBeenCalledWith({
+        userId: mockUserId,
+        stakeAmount: 25,
+        rewardType: RewardType.TOKENS,
+        rewardValue: 100,
+        status: SpinSessionStatus.PENDING,
+        txReference: 'tx-abc123',
+      });
+      expect(result.rewardType).toBe(RewardType.TOKENS);
+      expect(result.rewardValue).toBe(100);
+    });
+  });
+
+  describe('findById', () => {
+    it('should return a session when found', async () => {
+      const mockSession = createMockSession();
+      mockRepository.findOne.mockResolvedValue(mockSession);
+
+      const result = await service.findById(mockSessionId);
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: mockSessionId },
+      });
+      expect(result).toEqual(mockSession);
     });
 
-    afterEach(() => {
-        jest.clearAllMocks();
+    it('should return null when session not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.findById('non-existent');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('findByIdOrFail', () => {
+    it('should return session when found', async () => {
+      const mockSession = createMockSession();
+      mockRepository.findOne.mockResolvedValue(mockSession);
+
+      const result = await service.findByIdOrFail(mockSessionId);
+
+      expect(result).toEqual(mockSession);
     });
 
-    describe('create', () => {
-        it('should create a new spin session with default values', async () => {
-            const createDto: CreateSpinSessionDto = { stakeAmount: 10 };
-            const mockSession = createMockSession();
+    it('should throw NotFoundException when session not found', async () => {
+      mockRepository.findOne.mockResolvedValue(null);
 
-            mockRepository.create.mockReturnValue(mockSession);
-            mockRepository.save.mockResolvedValue(mockSession);
+      await expect(service.findByIdOrFail('non-existent')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 
-            const result = await service.create(mockUserId, createDto);
+  describe('findByUserId', () => {
+    it('should return sessions for user ordered by createdAt DESC', async () => {
+      const sessions = [
+        createMockSession({ id: 'session-1' }),
+        createMockSession({ id: 'session-2' }),
+      ];
+      mockRepository.find.mockResolvedValue(sessions);
 
-            expect(mockRepository.create).toHaveBeenCalledWith({
-                userId: mockUserId,
-                stakeAmount: 10,
-                rewardType: RewardType.NONE,
-                rewardValue: 0,
-                status: SpinSessionStatus.PENDING,
-                txReference: null,
-            });
-            expect(mockRepository.save).toHaveBeenCalledWith(mockSession);
-            expect(result).toEqual(mockSession);
-        });
+      const result = await service.findByUserId(mockUserId);
 
-        it('should create a spin session with provided reward type and value', async () => {
-            const createDto: CreateSpinSessionDto = {
-                stakeAmount: 25,
-                rewardType: RewardType.TOKENS,
-                rewardValue: 100,
-                txReference: 'tx-abc123',
-            };
-            const mockSession = createMockSession({
-                stakeAmount: 25,
-                rewardType: RewardType.TOKENS,
-                rewardValue: 100,
-                txReference: 'tx-abc123',
-            });
-
-            mockRepository.create.mockReturnValue(mockSession);
-            mockRepository.save.mockResolvedValue(mockSession);
-
-            const result = await service.create(mockUserId, createDto);
-
-            expect(mockRepository.create).toHaveBeenCalledWith({
-                userId: mockUserId,
-                stakeAmount: 25,
-                rewardType: RewardType.TOKENS,
-                rewardValue: 100,
-                status: SpinSessionStatus.PENDING,
-                txReference: 'tx-abc123',
-            });
-            expect(result.rewardType).toBe(RewardType.TOKENS);
-            expect(result.rewardValue).toBe(100);
-        });
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: mockUserId },
+        order: { createdAt: 'DESC' },
+        take: 50,
+      });
+      expect(result).toEqual(sessions);
     });
 
-    describe('findById', () => {
-        it('should return a session when found', async () => {
-            const mockSession = createMockSession();
-            mockRepository.findOne.mockResolvedValue(mockSession);
+    it('should respect custom limit parameter', async () => {
+      mockRepository.find.mockResolvedValue([]);
 
-            const result = await service.findById(mockSessionId);
+      await service.findByUserId(mockUserId, 10);
 
-            expect(mockRepository.findOne).toHaveBeenCalledWith({
-                where: { id: mockSessionId },
-            });
-            expect(result).toEqual(mockSession);
-        });
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { userId: mockUserId },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
+    });
+  });
 
-        it('should return null when session not found', async () => {
-            mockRepository.findOne.mockResolvedValue(null);
+  describe('complete', () => {
+    it('should complete a pending session with reward details', async () => {
+      const mockSession = createMockSession();
+      const completedSession = createMockSession({
+        status: SpinSessionStatus.COMPLETED,
+        rewardType: RewardType.TOKENS,
+        rewardValue: 50,
+        txReference: 'tx-completed',
+      });
 
-            const result = await service.findById('non-existent');
+      mockRepository.findOne.mockResolvedValue(mockSession);
+      mockRepository.save.mockResolvedValue(completedSession);
 
-            expect(result).toBeNull();
-        });
+      const result = await service.complete(
+        mockSessionId,
+        RewardType.TOKENS,
+        50,
+        'tx-completed',
+      );
+
+      expect(result.status).toBe(SpinSessionStatus.COMPLETED);
+      expect(result.rewardType).toBe(RewardType.TOKENS);
+      expect(result.rewardValue).toBe(50);
     });
 
-    describe('findByIdOrFail', () => {
-        it('should return session when found', async () => {
-            const mockSession = createMockSession();
-            mockRepository.findOne.mockResolvedValue(mockSession);
+    it('should throw BadRequestException when session is already completed', async () => {
+      const completedSession = createMockSession({
+        status: SpinSessionStatus.COMPLETED,
+      });
+      mockRepository.findOne.mockResolvedValue(completedSession);
 
-            const result = await service.findByIdOrFail(mockSessionId);
-
-            expect(result).toEqual(mockSession);
-        });
-
-        it('should throw NotFoundException when session not found', async () => {
-            mockRepository.findOne.mockResolvedValue(null);
-
-            await expect(service.findByIdOrFail('non-existent')).rejects.toThrow(
-                NotFoundException,
-            );
-        });
+      await expect(
+        service.complete(mockSessionId, RewardType.XP, 10),
+      ).rejects.toThrow(BadRequestException);
     });
 
-    describe('findByUserId', () => {
-        it('should return sessions for user ordered by createdAt DESC', async () => {
-            const sessions = [
-                createMockSession({ id: 'session-1' }),
-                createMockSession({ id: 'session-2' }),
-            ];
-            mockRepository.find.mockResolvedValue(sessions);
+    it('should throw BadRequestException when session is failed', async () => {
+      const failedSession = createMockSession({
+        status: SpinSessionStatus.FAILED,
+      });
+      mockRepository.findOne.mockResolvedValue(failedSession);
 
-            const result = await service.findByUserId(mockUserId);
+      await expect(
+        service.complete(mockSessionId, RewardType.XP, 10),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 
-            expect(mockRepository.find).toHaveBeenCalledWith({
-                where: { userId: mockUserId },
-                order: { createdAt: 'DESC' },
-                take: 50,
-            });
-            expect(result).toEqual(sessions);
-        });
+  describe('fail', () => {
+    it('should mark a pending session as failed', async () => {
+      const mockSession = createMockSession();
+      const failedSession = createMockSession({
+        status: SpinSessionStatus.FAILED,
+        txReference: 'tx-failed',
+      });
 
-        it('should respect custom limit parameter', async () => {
-            mockRepository.find.mockResolvedValue([]);
+      mockRepository.findOne.mockResolvedValue(mockSession);
+      mockRepository.save.mockResolvedValue(failedSession);
 
-            await service.findByUserId(mockUserId, 10);
+      const result = await service.fail(mockSessionId, 'tx-failed');
 
-            expect(mockRepository.find).toHaveBeenCalledWith({
-                where: { userId: mockUserId },
-                order: { createdAt: 'DESC' },
-                take: 10,
-            });
-        });
+      expect(result.status).toBe(SpinSessionStatus.FAILED);
     });
 
-    describe('complete', () => {
-        it('should complete a pending session with reward details', async () => {
-            const mockSession = createMockSession();
-            const completedSession = createMockSession({
-                status: SpinSessionStatus.COMPLETED,
-                rewardType: RewardType.TOKENS,
-                rewardValue: 50,
-                txReference: 'tx-completed',
-            });
+    it('should throw BadRequestException when session is already completed', async () => {
+      const completedSession = createMockSession({
+        status: SpinSessionStatus.COMPLETED,
+      });
+      mockRepository.findOne.mockResolvedValue(completedSession);
 
-            mockRepository.findOne.mockResolvedValue(mockSession);
-            mockRepository.save.mockResolvedValue(completedSession);
+      await expect(service.fail(mockSessionId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
 
-            const result = await service.complete(
-                mockSessionId,
-                RewardType.TOKENS,
-                50,
-                'tx-completed',
-            );
+  describe('setTxReference', () => {
+    it('should update txReference for pending session', async () => {
+      const mockSession = createMockSession();
+      const updatedSession = createMockSession({ txReference: 'new-tx-ref' });
 
-            expect(result.status).toBe(SpinSessionStatus.COMPLETED);
-            expect(result.rewardType).toBe(RewardType.TOKENS);
-            expect(result.rewardValue).toBe(50);
-        });
+      mockRepository.findOne.mockResolvedValue(mockSession);
+      mockRepository.save.mockResolvedValue(updatedSession);
 
-        it('should throw BadRequestException when session is already completed', async () => {
-            const completedSession = createMockSession({
-                status: SpinSessionStatus.COMPLETED,
-            });
-            mockRepository.findOne.mockResolvedValue(completedSession);
+      const result = await service.setTxReference(mockSessionId, 'new-tx-ref');
 
-            await expect(
-                service.complete(mockSessionId, RewardType.XP, 10),
-            ).rejects.toThrow(BadRequestException);
-        });
-
-        it('should throw BadRequestException when session is failed', async () => {
-            const failedSession = createMockSession({
-                status: SpinSessionStatus.FAILED,
-            });
-            mockRepository.findOne.mockResolvedValue(failedSession);
-
-            await expect(
-                service.complete(mockSessionId, RewardType.XP, 10),
-            ).rejects.toThrow(BadRequestException);
-        });
+      expect(result.txReference).toBe('new-tx-ref');
     });
 
-    describe('fail', () => {
-        it('should mark a pending session as failed', async () => {
-            const mockSession = createMockSession();
-            const failedSession = createMockSession({
-                status: SpinSessionStatus.FAILED,
-                txReference: 'tx-failed',
-            });
+    it('should throw BadRequestException for completed session', async () => {
+      const completedSession = createMockSession({
+        status: SpinSessionStatus.COMPLETED,
+      });
+      mockRepository.findOne.mockResolvedValue(completedSession);
 
-            mockRepository.findOne.mockResolvedValue(mockSession);
-            mockRepository.save.mockResolvedValue(failedSession);
+      await expect(
+        service.setTxReference(mockSessionId, 'new-ref'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 
-            const result = await service.fail(mockSessionId, 'tx-failed');
+  describe('getStatistics', () => {
+    it('should return aggregate statistics', async () => {
+      const sessions = [
+        createMockSession({
+          stakeAmount: 10,
+          rewardValue: 25,
+          status: SpinSessionStatus.COMPLETED,
+          rewardType: RewardType.TOKENS,
+        }),
+        createMockSession({
+          stakeAmount: 20,
+          rewardValue: 0,
+          status: SpinSessionStatus.FAILED,
+          rewardType: RewardType.NONE,
+        }),
+        createMockSession({
+          stakeAmount: 15,
+          rewardValue: 0,
+          status: SpinSessionStatus.PENDING,
+          rewardType: RewardType.NONE,
+        }),
+      ];
+      mockRepository.find.mockResolvedValue(sessions);
 
-            expect(result.status).toBe(SpinSessionStatus.FAILED);
-        });
+      const stats = await service.getStatistics();
 
-        it('should throw BadRequestException when session is already completed', async () => {
-            const completedSession = createMockSession({
-                status: SpinSessionStatus.COMPLETED,
-            });
-            mockRepository.findOne.mockResolvedValue(completedSession);
-
-            await expect(service.fail(mockSessionId)).rejects.toThrow(
-                BadRequestException,
-            );
-        });
+      expect(stats.totalSessions).toBe(3);
+      expect(stats.totalStaked).toBe(45);
+      expect(stats.totalRewards).toBe(25);
+      expect(stats.statusCounts[SpinSessionStatus.COMPLETED]).toBe(1);
+      expect(stats.statusCounts[SpinSessionStatus.FAILED]).toBe(1);
+      expect(stats.statusCounts[SpinSessionStatus.PENDING]).toBe(1);
+      expect(stats.rewardTypeCounts[RewardType.TOKENS]).toBe(1);
+      expect(stats.rewardTypeCounts[RewardType.NONE]).toBe(2);
     });
 
-    describe('setTxReference', () => {
-        it('should update txReference for pending session', async () => {
-            const mockSession = createMockSession();
-            const updatedSession = createMockSession({ txReference: 'new-tx-ref' });
+    it('should return zero counts when no sessions exist', async () => {
+      mockRepository.find.mockResolvedValue([]);
 
-            mockRepository.findOne.mockResolvedValue(mockSession);
-            mockRepository.save.mockResolvedValue(updatedSession);
+      const stats = await service.getStatistics();
 
-            const result = await service.setTxReference(mockSessionId, 'new-tx-ref');
+      expect(stats.totalSessions).toBe(0);
+      expect(stats.totalStaked).toBe(0);
+      expect(stats.totalRewards).toBe(0);
+    });
+  });
 
-            expect(result.txReference).toBe('new-tx-ref');
-        });
+  describe('immutability enforcement', () => {
+    it('should prevent any modification to completed sessions', async () => {
+      const completedSession = createMockSession({
+        status: SpinSessionStatus.COMPLETED,
+      });
+      mockRepository.findOne.mockResolvedValue(completedSession);
 
-        it('should throw BadRequestException for completed session', async () => {
-            const completedSession = createMockSession({
-                status: SpinSessionStatus.COMPLETED,
-            });
-            mockRepository.findOne.mockResolvedValue(completedSession);
+      // All modification operations should fail
+      await expect(
+        service.complete(mockSessionId, RewardType.XP, 10),
+      ).rejects.toThrow(/immutable/);
 
-            await expect(
-                service.setTxReference(mockSessionId, 'new-ref'),
-            ).rejects.toThrow(BadRequestException);
-        });
+      await expect(service.fail(mockSessionId)).rejects.toThrow(/immutable/);
+
+      await expect(
+        service.setTxReference(mockSessionId, 'new-ref'),
+      ).rejects.toThrow(/immutable/);
     });
 
-    describe('getStatistics', () => {
-        it('should return aggregate statistics', async () => {
-            const sessions = [
-                createMockSession({
-                    stakeAmount: 10,
-                    rewardValue: 25,
-                    status: SpinSessionStatus.COMPLETED,
-                    rewardType: RewardType.TOKENS,
-                }),
-                createMockSession({
-                    stakeAmount: 20,
-                    rewardValue: 0,
-                    status: SpinSessionStatus.FAILED,
-                    rewardType: RewardType.NONE,
-                }),
-                createMockSession({
-                    stakeAmount: 15,
-                    rewardValue: 0,
-                    status: SpinSessionStatus.PENDING,
-                    rewardType: RewardType.NONE,
-                }),
-            ];
-            mockRepository.find.mockResolvedValue(sessions);
+    it('should prevent any modification to failed sessions', async () => {
+      const failedSession = createMockSession({
+        status: SpinSessionStatus.FAILED,
+      });
+      mockRepository.findOne.mockResolvedValue(failedSession);
 
-            const stats = await service.getStatistics();
+      await expect(
+        service.complete(mockSessionId, RewardType.XP, 10),
+      ).rejects.toThrow(/immutable/);
 
-            expect(stats.totalSessions).toBe(3);
-            expect(stats.totalStaked).toBe(45);
-            expect(stats.totalRewards).toBe(25);
-            expect(stats.statusCounts[SpinSessionStatus.COMPLETED]).toBe(1);
-            expect(stats.statusCounts[SpinSessionStatus.FAILED]).toBe(1);
-            expect(stats.statusCounts[SpinSessionStatus.PENDING]).toBe(1);
-            expect(stats.rewardTypeCounts[RewardType.TOKENS]).toBe(1);
-            expect(stats.rewardTypeCounts[RewardType.NONE]).toBe(2);
-        });
+      await expect(service.fail(mockSessionId)).rejects.toThrow(/immutable/);
 
-        it('should return zero counts when no sessions exist', async () => {
-            mockRepository.find.mockResolvedValue([]);
-
-            const stats = await service.getStatistics();
-
-            expect(stats.totalSessions).toBe(0);
-            expect(stats.totalStaked).toBe(0);
-            expect(stats.totalRewards).toBe(0);
-        });
+      await expect(
+        service.setTxReference(mockSessionId, 'new-ref'),
+      ).rejects.toThrow(/immutable/);
     });
-
-    describe('immutability enforcement', () => {
-        it('should prevent any modification to completed sessions', async () => {
-            const completedSession = createMockSession({
-                status: SpinSessionStatus.COMPLETED,
-            });
-            mockRepository.findOne.mockResolvedValue(completedSession);
-
-            // All modification operations should fail
-            await expect(
-                service.complete(mockSessionId, RewardType.XP, 10),
-            ).rejects.toThrow(/immutable/);
-
-            await expect(service.fail(mockSessionId)).rejects.toThrow(/immutable/);
-
-            await expect(
-                service.setTxReference(mockSessionId, 'new-ref'),
-            ).rejects.toThrow(/immutable/);
-        });
-
-        it('should prevent any modification to failed sessions', async () => {
-            const failedSession = createMockSession({
-                status: SpinSessionStatus.FAILED,
-            });
-            mockRepository.findOne.mockResolvedValue(failedSession);
-
-            await expect(
-                service.complete(mockSessionId, RewardType.XP, 10),
-            ).rejects.toThrow(/immutable/);
-
-            await expect(service.fail(mockSessionId)).rejects.toThrow(/immutable/);
-
-            await expect(
-                service.setTxReference(mockSessionId, 'new-ref'),
-            ).rejects.toThrow(/immutable/);
-        });
-    });
+  });
 });

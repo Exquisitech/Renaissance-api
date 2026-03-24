@@ -27,7 +27,7 @@ Tracks all admin actions with complete context:
 - **Metadata** - Additional context (amounts, balances, etc.)
 - **Timestamp** - When the action occurred
 
-### Database Tables
+### Database Table
 
 **admin_audit_logs**
 ```sql

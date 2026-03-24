@@ -76,14 +76,19 @@ describe('WalletService', () => {
       const amount = 100;
       const source = TransactionSource.DEPOSIT;
       const referenceId = 'ref-123';
-      const mockBalance = { id: 'bal-1', userId, availableBalance: 50, lockedBalance: 0 };
+      const mockBalance = {
+        id: 'bal-1',
+        userId,
+        availableBalance: 50,
+        lockedBalance: 0,
+      };
       const mockTransaction = { id: 'txn-123', status: 'completed' };
 
       const queryRunner = mockDataSource.createQueryRunner();
 
       queryRunner.manager.findOne.mockResolvedValueOnce(mockBalance); // Get balance
       queryRunner.manager.findOne.mockResolvedValueOnce(null); // Check for existing transaction
-      
+
       queryRunner.manager.create.mockReturnValue(mockTransaction);
       queryRunner.manager.save
         .mockResolvedValueOnce(mockTransaction)
@@ -103,9 +108,9 @@ describe('WalletService', () => {
     });
 
     it('should throw BadRequestException for negative amount', async () => {
-      await expect(service.credit('user-id', -50, TransactionSource.DEPOSIT, 'ref')).rejects.toThrow(
-        'Amount must be positive',
-      );
+      await expect(
+        service.credit('user-id', -50, TransactionSource.DEPOSIT, 'ref'),
+      ).rejects.toThrow('Amount must be positive');
     });
   });
 
@@ -115,14 +120,19 @@ describe('WalletService', () => {
       const amount = 50;
       const source = TransactionSource.WITHDRAWAL;
       const referenceId = 'ref-456';
-      const mockBalance = { id: 'bal-1', userId, availableBalance: 100, lockedBalance: 0 };
+      const mockBalance = {
+        id: 'bal-1',
+        userId,
+        availableBalance: 100,
+        lockedBalance: 0,
+      };
       const mockTransaction = { id: 'txn-456', status: 'completed' };
 
       const queryRunner = mockDataSource.createQueryRunner();
 
       queryRunner.manager.findOne.mockResolvedValueOnce(mockBalance); // Get balance
       queryRunner.manager.findOne.mockResolvedValueOnce(null); // Check for existing transaction
-      
+
       queryRunner.manager.create.mockReturnValue(mockTransaction);
       queryRunner.manager.save
         .mockResolvedValueOnce(mockTransaction)
@@ -144,39 +154,49 @@ describe('WalletService', () => {
       const amount = 150;
       const source = TransactionSource.WITHDRAWAL;
       const referenceId = 'ref-789';
-      const mockBalance = { id: 'bal-1', userId, availableBalance: 100, lockedBalance: 0 };
+      const mockBalance = {
+        id: 'bal-1',
+        userId,
+        availableBalance: 100,
+        lockedBalance: 0,
+      };
 
       const queryRunner = mockDataSource.createQueryRunner();
       queryRunner.manager.findOne.mockResolvedValueOnce(mockBalance); // Get balance
       queryRunner.manager.findOne.mockResolvedValueOnce(null); // Check for existing transaction
 
-      await expect(service.debit(userId, amount, source, referenceId)).rejects.toThrow(
-        'Insufficient funds',
-      );
+      await expect(
+        service.debit(userId, amount, source, referenceId),
+      ).rejects.toThrow('Insufficient funds');
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
   });
 
   describe('updateUserBalanceWithQueryRunner', () => {
     it('should update balance using existing query runner', async () => {
-        const userId = 'test-user-id';
-        const amount = 100;
-        const queryRunner = mockDataSource.createQueryRunner();
-        const mockBalance = { id: 'bal-1', userId, availableBalance: 50, lockedBalance: 0 };
+      const userId = 'test-user-id';
+      const amount = 100;
+      const queryRunner = mockDataSource.createQueryRunner();
+      const mockBalance = {
+        id: 'bal-1',
+        userId,
+        availableBalance: 50,
+        lockedBalance: 0,
+      };
 
-        queryRunner.manager.findOne.mockResolvedValue(mockBalance);
-        queryRunner.manager.create.mockReturnValue({});
-        queryRunner.manager.save.mockResolvedValue({});
+      queryRunner.manager.findOne.mockResolvedValue(mockBalance);
+      queryRunner.manager.create.mockReturnValue({});
+      queryRunner.manager.save.mockResolvedValue({});
 
-        const result = await service.updateUserBalanceWithQueryRunner(
-            queryRunner,
-            userId,
-            amount,
-            TransactionType.CREDIT
-        );
+      const result = await service.updateUserBalanceWithQueryRunner(
+        queryRunner,
+        userId,
+        amount,
+        TransactionType.CREDIT,
+      );
 
-        expect(result).toEqual({ success: true });
-        expect(queryRunner.manager.save).toHaveBeenCalledTimes(2); // Transaction and Balance
+      expect(result).toEqual({ success: true });
+      expect(queryRunner.manager.save).toHaveBeenCalledTimes(2); // Transaction and Balance
     });
   });
 });

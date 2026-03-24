@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, FindOptionsOrder } from 'typeorm';
 import { PlayerCardMetadata } from './entities/player-card-metadata.entity';
-import { CreatePlayerCardMetadataDto, UpdatePlayerCardMetadataDto } from './dto/create-player-card-metadata.dto';
+import {
+  CreatePlayerCardMetadataDto,
+  UpdatePlayerCardMetadataDto,
+} from './dto/create-player-card-metadata.dto';
 import { CacheInvalidationService } from '../common/cache/cache-invalidation.service';
 
 export interface PaginatedPlayerCardMetadata {
@@ -30,7 +33,8 @@ export class PlayerCardMetadataService {
     const playerCardMetadata = this.playerCardMetadataRepository.create(
       createPlayerCardMetadataDto,
     );
-    const savedMetadata = await this.playerCardMetadataRepository.save(playerCardMetadata);
+    const savedMetadata =
+      await this.playerCardMetadataRepository.save(playerCardMetadata);
     await this.cacheInvalidationService.invalidatePattern('player-cards*');
     return savedMetadata;
   }
@@ -70,7 +74,10 @@ export class PlayerCardMetadataService {
   /**
    * Get a single player card metadata by ID
    */
-  async findOne(id: string, isPublishedOnly: boolean = true): Promise<PlayerCardMetadata> {
+  async findOne(
+    id: string,
+    isPublishedOnly: boolean = true,
+  ): Promise<PlayerCardMetadata> {
     const where: FindOptionsWhere<PlayerCardMetadata> = { id };
 
     if (isPublishedOnly) {
@@ -83,7 +90,9 @@ export class PlayerCardMetadataService {
     });
 
     if (!playerCardMetadata) {
-      throw new NotFoundException(`Player card metadata with ID ${id} not found`);
+      throw new NotFoundException(
+        `Player card metadata with ID ${id} not found`,
+      );
     }
 
     return playerCardMetadata;
@@ -165,11 +174,14 @@ export class PlayerCardMetadataService {
     });
 
     if (!playerCardMetadata) {
-      throw new NotFoundException(`Player card metadata with ID ${id} not found`);
+      throw new NotFoundException(
+        `Player card metadata with ID ${id} not found`,
+      );
     }
 
     Object.assign(playerCardMetadata, updatePlayerCardMetadataDto);
-    const savedMetadata = await this.playerCardMetadataRepository.save(playerCardMetadata);
+    const savedMetadata =
+      await this.playerCardMetadataRepository.save(playerCardMetadata);
     await this.cacheInvalidationService.invalidatePattern('player-cards*');
     return savedMetadata;
   }
@@ -183,7 +195,9 @@ export class PlayerCardMetadataService {
     });
 
     if (!playerCardMetadata) {
-      throw new NotFoundException(`Player card metadata with ID ${id} not found`);
+      throw new NotFoundException(
+        `Player card metadata with ID ${id} not found`,
+      );
     }
 
     await this.playerCardMetadataRepository.remove(playerCardMetadata);
@@ -200,7 +214,9 @@ export class PlayerCardMetadataService {
     isPublishedOnly: boolean = true,
   ): Promise<PaginatedPlayerCardMetadata> {
     const skip = (page - 1) * limit;
-    const where: FindOptionsWhere<PlayerCardMetadata> = { rarity: rarity as any };
+    const where: FindOptionsWhere<PlayerCardMetadata> = {
+      rarity: rarity as any,
+    };
 
     if (isPublishedOnly) {
       where.isPublished = true;

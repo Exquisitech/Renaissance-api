@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, String, U256, Map, Vec};
+use soroban_sdk::{contracttype, Address, Map, String, Vec, U256};
 
 // ===== USER BALANCE DATA STRUCTURES =====
 

@@ -4,8 +4,8 @@ pub mod enums;
 pub mod errors;
 pub mod events;
 pub mod getters;
-pub mod view_functions;
 pub mod idempotency;
+pub mod view_functions;
 
 pub use enums::*;
 pub use errors::*;

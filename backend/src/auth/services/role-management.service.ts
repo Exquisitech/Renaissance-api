@@ -1,4 +1,8 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, UserRole } from '../../users/entities/user.entity';
@@ -45,17 +49,21 @@ export class RoleManagementService {
     }
 
     // Only ADMIN can assign privileged contract roles
-    if (this.isPrivilegedRole(newRole) && assigningUser.role !== UserRole.ADMIN) {
+    if (
+      this.isPrivilegedRole(newRole) &&
+      assigningUser.role !== UserRole.ADMIN
+    ) {
       throw new ForbiddenException(
         'Only ADMIN can assign privileged contract roles',
       );
     }
 
     // ADMIN can assign any role, MODERATOR can only assign USER/MODERATOR
-    if (assigningUser.role === UserRole.MODERATOR && newRole !== UserRole.USER) {
-      throw new ForbiddenException(
-        'MODERATOR can only assign USER role',
-      );
+    if (
+      assigningUser.role === UserRole.MODERATOR &&
+      newRole !== UserRole.USER
+    ) {
+      throw new ForbiddenException('MODERATOR can only assign USER role');
     }
 
     // Get target user

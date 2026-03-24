@@ -1,6 +1,6 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Symbol, U256, Vec};
+use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Symbol, Vec, U256};
 
 mod errors;
 mod events;
@@ -27,10 +27,10 @@ impl PlayerCardContract {
         if storage::has_admin(&env) {
             panic!("already initialized");
         }
-        
+
         storage::set_admin(&env, &admin);
         storage::set_next_token_id(&env, 1);
-        
+
         let event = NFTMintEvent {
             token_id: U256::from_u32(&env, 0),
             to: admin.clone(),
@@ -41,7 +41,7 @@ impl PlayerCardContract {
             metadata: soroban_sdk::Map::new(&env),
             price: None,
         };
-        
+
         env.events().publish((NFT_MINT_EVENT,), event);
     }
 
@@ -78,11 +78,12 @@ impl PlayerCardContract {
             Symbol::short("PLAYER_CARD"),
             None,
         );
-        
+
         let mut event_with_timestamp = event;
         event_with_timestamp.timestamp = env.ledger().timestamp();
 
-        env.events().publish((NFT_MINT_EVENT,), event_with_timestamp);
+        env.events()
+            .publish((NFT_MINT_EVENT,), event_with_timestamp);
 
         Ok(token_id)
     }
@@ -98,7 +99,7 @@ impl PlayerCardContract {
     /// Transfer ownership of a token from one address to another
     pub fn transfer(env: Env, from: Address, to: Address, token_id: u64) {
         from.require_auth();
-        
+
         let current_owner = storage::get_owner(&env, token_id);
         if current_owner != from {
             panic!("not token owner");
@@ -194,13 +195,13 @@ impl PlayerCardContract {
     pub fn get_user_nft_balance_md(env: Env, user: Address) -> (u64, Vec<(u64, String)>) {
         let token_ids = storage::get_tokens_of_owner(&env, user.clone());
         let balance = token_ids.len() as u64;
-        
+
         let mut token_metadata = Vec::new(&env);
         for token_id in token_ids.iter() {
             let uri = storage::get_token_uri(&env, token_id);
             token_metadata.push_back((token_id, uri));
         }
-        
+
         (balance, token_metadata)
     }
 }

@@ -1,0 +1,62 @@
+{
+  "deployment": {
+    "network": "testnet",
+    "default_source": "admin",
+    "rpc_url": "https://soroban-testnet.stellar.org",
+    "network_passphrase": "Test SDF Network ; September 2015",
+    "contracts": [
+      {
+        "name": "balance_ledger",
+        "path": "target/wasm32-unknown-unknown/release/balance_ledger.wasm",
+        "optimized_path": "target/wasm32-unknown-unknown/release/balance_ledger_optimized.wasm",
+        "dependencies": [],
+        "description": "Core ledger contract for tracking balances"
+      },
+      {
+        "name": "betting",
+        "path": "target/wasm32-unknown-unknown/release/betting.wasm",
+        "optimized_path": "target/wasm32-unknown-unknown/release/betting_optimized.wasm",
+        "dependencies": ["balance_ledger"],
+        "description": "Main betting contract that handles bet creation and management"
+      },
+      {
+        "name": "settlement",
+        "path": "target/wasm32-unknown-unknown/release/settlement.wasm",
+        "optimized_path": "target/wasm32-unknown-unknown/release/settlement_optimized.wasm",
+        "dependencies": ["balance_ledger", "betting"],
+        "description": "Settlement contract for resolving bets"
+      },
+      {
+        "name": "player_card",
+        "path": "target/wasm32-unknown-unknown/release/player_card.wasm",
+        "optimized_path": "target/wasm32-unknown-unknown/release/player_card_optimized.wasm",
+        "dependencies": ["balance_ledger"],
+        "description": "Player card contract for NFT-based player cards"
+      },
+      {
+        "name": "staking",
+        "path": "target/wasm32-unknown-unknown/release/staking.wasm",
+        "optimized_path": "target/wasm32-unknown-unknown/release/staking_optimized.wasm",
+        "dependencies": ["balance_ledger"],
+        "description": "Staking contract for rewards and governance"
+      }
+    ],
+    "deployment_order": [
+      "balance_ledger",
+      "betting", 
+      "settlement",
+      "player_card",
+      "staking"
+    ],
+    "verification": {
+      "enabled": true,
+      "timeout_seconds": 30,
+      "retry_attempts": 3
+    },
+    "logging": {
+      "level": "info",
+      "file": "deployment.log",
+      "timestamp_format": "YYYY-MM-DD HH:mm:ss"
+    }
+  }
+}

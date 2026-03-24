@@ -1452,6 +1452,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "staking"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1569,6 +1577,13 @@ checksum = "78cc610bac2dcee56805c99642447d4c5dbde4d01f752ffea0199aee1f601dc4"
 dependencies = [
  "num-conv",
  "time-core",
+]
+
+[[package]]
+name = "treasury"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

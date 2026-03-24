@@ -6,8 +6,7 @@ import { RequestContextStorage } from '../../common/request-context';
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
-    const correlationId =
-      req.headers['x-correlation-id']?.toString() ?? uuid();
+    const correlationId = req.headers['x-correlation-id']?.toString() ?? uuid();
 
     RequestContextStorage.run({ correlationId }, () => {
       res.setHeader('x-correlation-id', correlationId);

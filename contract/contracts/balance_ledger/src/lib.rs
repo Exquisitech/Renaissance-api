@@ -172,14 +172,7 @@ impl BalanceLedgerContract {
         };
 
         store_user_metrics(&env, &user, &updated);
-        publish_metrics_updated_event(
-            &env,
-            &user,
-            staked_delta,
-            won_delta,
-            lost_delta,
-            &updated,
-        );
+        publish_metrics_updated_event(&env, &user, staked_delta, won_delta, lost_delta, &updated);
 
         Ok(updated)
     }

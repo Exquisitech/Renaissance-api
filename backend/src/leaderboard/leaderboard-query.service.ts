@@ -11,11 +11,7 @@ export class LeaderboardQueryService {
     private readonly userRepo: Repository<User>,
   ) {}
 
-  async getLeaderboard(
-    type: LeaderboardType,
-    page = 1,
-    limit = 10,
-  ) {
+  async getLeaderboard(type: LeaderboardType, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const qb = this.userRepo
@@ -26,24 +22,21 @@ export class LeaderboardQueryService {
 
     switch (type) {
       case LeaderboardType.STAKERS:
-        qb
-          .leftJoin('user.bets', 'bet')
+        qb.leftJoin('user.bets', 'bet')
           .addSelect('COALESCE(SUM(bet.amount), 0)', 'score')
           .groupBy('user.id')
           .orderBy('score', 'DESC');
         break;
 
       case LeaderboardType.EARNERS:
-        qb
-          .leftJoin('user.transactions', 'tx')
+        qb.leftJoin('user.transactions', 'tx')
           .addSelect('COALESCE(SUM(tx.amount), 0)', 'score')
           .groupBy('user.id')
           .orderBy('score', 'DESC');
         break;
 
       case LeaderboardType.PREDICTORS:
-        qb
-          .leftJoin('user.predictions', 'prediction')
+        qb.leftJoin('user.predictions', 'prediction')
           .addSelect(
             'COUNT(CASE WHEN prediction.isCorrect = true THEN 1 END)',
             'score',
@@ -53,8 +46,7 @@ export class LeaderboardQueryService {
         break;
 
       case LeaderboardType.STREAKS:
-        qb
-          .leftJoin('user.predictions', 'prediction')
+        qb.leftJoin('user.predictions', 'prediction')
           .addSelect('MAX(prediction.streak)', 'score')
           .groupBy('user.id')
           .orderBy('score', 'DESC');

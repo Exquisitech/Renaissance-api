@@ -1,12 +1,16 @@
-use soroban_sdk::{Address, Env, String, Map, Vec, U256};
 use crate::getters::*;
+use soroban_sdk::{Address, Env, Map, String, Vec, U256};
 
 // ===== USER BALANCE GETTERS =====
 
 /// Get user balance for a specific token
 /// Returns: UserBalance struct with current and locked amounts
 pub fn get_user_balance(env: &Env, user: Address, token_address: Address) -> UserBalance {
-    let key = (String::from_str(env, USER_BALANCE_PREFIX), user.clone(), token_address.clone());
+    let key = (
+        String::from_str(env, USER_BALANCE_PREFIX),
+        user.clone(),
+        token_address.clone(),
+    );
     env.storage()
         .instance()
         .get(&key)
@@ -22,18 +26,18 @@ pub fn get_user_balance(env: &Env, user: Address, token_address: Address) -> Use
 /// Get all token balances for a user
 /// Returns: Map of token_address -> UserBalance
 pub fn get_user_all_balances(env: &Env, _user: Address) -> Map<Address, UserBalance> {
-    let _prefix = String::from_str(env, USER_BALANCE_PREFIX);
-    let balances = Map::new(env);
-    
     // In a real implementation, you would iterate through storage
     // For now, return empty map - actual implementation would need storage scanning
-    balances
+    Map::new(env)
 }
 
 /// Get token balance information
 /// Returns: TokenBalance with total supply and locked amounts
 pub fn get_token_balance(env: &Env, token_address: Address) -> TokenBalance {
-    let key = (String::from_str(env, TOKEN_BALANCE_PREFIX), token_address.clone());
+    let key = (
+        String::from_str(env, TOKEN_BALANCE_PREFIX),
+        token_address.clone(),
+    );
     env.storage()
         .instance()
         .get(&key)
@@ -76,13 +80,11 @@ pub fn get_active_stake(env: &Env, stake_id: U256) -> ActiveStake {
 pub fn get_user_active_stakes(env: &Env, user: Address) -> Vec<ActiveStake> {
     let prefix = String::from_str(env, USER_STAKE_INFO_PREFIX);
     let key = (prefix, user.clone());
-    
+
     if let Some(_stake_info) = env.storage().instance().get::<_, UserStakeInfo>(&key) {
-        let stakes = Vec::new(env);
-        
         // In a real implementation, you would fetch actual stakes
         // For now, return empty vec - actual implementation would need storage scanning
-        stakes
+        Vec::new(env)
     } else {
         Vec::new(env)
     }
@@ -143,13 +145,11 @@ pub fn get_locked_bet(env: &Env, bet_id: U256) -> LockedBet {
 pub fn get_user_locked_bets(env: &Env, user: Address) -> Vec<LockedBet> {
     let prefix = String::from_str(env, USER_BET_INFO_PREFIX);
     let key = (prefix, user.clone());
-    
+
     if let Some(_bet_info) = env.storage().instance().get::<_, UserBetInfo>(&key) {
-        let bets = Vec::new(env);
-        
         // In a real implementation, you would fetch actual bets
         // For now, return empty vec - actual implementation would need storage scanning
-        bets
+        Vec::new(env)
     } else {
         Vec::new(env)
     }
@@ -217,12 +217,16 @@ pub fn get_user_total_locked(env: &Env, user: Address) -> i128 {
 
 /// Get user's key metrics in one call
 /// Returns: (available_balance, total_staked, locked_bets, pending_rewards)
-pub fn get_user_key_metrics(env: &Env, user: Address, token_address: Address) -> (i128, i128, i128, i128) {
+pub fn get_user_key_metrics(
+    env: &Env,
+    user: Address,
+    token_address: Address,
+) -> (i128, i128, i128, i128) {
     let available = get_user_available_balance(env, user.clone(), token_address.clone());
     let staked = get_user_total_staked(env, user.clone());
     let locked_bets = get_user_locked_bets_amount(env, user.clone());
     let rewards = get_user_pending_rewards(env, user);
-    
+
     (available, staked, locked_bets, rewards)
 }
 
@@ -230,11 +234,16 @@ pub fn get_user_key_metrics(env: &Env, user: Address, token_address: Address) ->
 /// Returns: (total_users, total_staked, total_locked_bets, total_supply)
 pub fn get_contract_stats(env: &Env, token_address: Address) -> (u32, i128, i128, i128) {
     let token_balance = get_token_balance(env, token_address);
-    
+
     // These would be actual counts in a real implementation
     let total_users = 0u32;
     let total_staked = 0i128;
     let total_locked_bets = 0i128;
-    
-    (total_users, total_staked, total_locked_bets, token_balance.total_supply)
+
+    (
+        total_users,
+        total_staked,
+        total_locked_bets,
+        token_balance.total_supply,
+    )
 }

@@ -4,7 +4,10 @@ import { DataSource } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
-import { HealthResponseDto, HealthCheckResult } from './dto/health-response.dto';
+import {
+  HealthResponseDto,
+  HealthCheckResult,
+} from './dto/health-response.dto';
 
 @Injectable()
 export class HealthService {
@@ -134,7 +137,9 @@ export class HealthService {
     const startTime = Date.now();
     try {
       // Check if blockchain configuration exists
-      const rpcUrl = this.configService.get<string>('blockchain.stellar.rpcUrl');
+      const rpcUrl = this.configService.get<string>(
+        'blockchain.stellar.rpcUrl',
+      );
       const contractId = this.configService.get<string>(
         'blockchain.soroban.contractId',
       );
@@ -157,10 +162,10 @@ export class HealthService {
         // Import rpc dynamically to avoid circular dependencies
         const { rpc } = await import('@stellar/stellar-sdk');
         const testServer = new rpc.Server(rpcUrl);
-        
+
         // Get latest ledger info - this is a lightweight operation
         await testServer.getLatestLedger();
-        
+
         const responseTime = Date.now() - startTime;
         return {
           status: 'up',

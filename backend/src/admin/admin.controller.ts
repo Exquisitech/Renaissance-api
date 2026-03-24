@@ -12,16 +12,24 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
+import { AdminAnalyticsService } from './admin-analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
-import { CancelBetDto, CorrectBalanceDto, CorrectMatchDto } from './dto/admin.dto';
+import {
+  CancelBetDto,
+  CorrectBalanceDto,
+  CorrectMatchDto,
+} from './dto/admin.dto';
 import { UpdateRateLimitCooldownDto } from './dto/rate-limit-config.dto';
 import { Bet } from '../bets/entities/bet.entity';
 import { User } from '../users/entities/user.entity';
 import { Match } from '../matches/entities/match.entity';
-import { AdminAuditLog, AdminActionType } from './entities/admin-audit-log.entity';
+import {
+  AdminAuditLog,
+  AdminActionType,
+} from './entities/admin-audit-log.entity';
 import { RateLimitInteractionService } from '../rate-limit/rate-limit-interaction.service';
 
 @ApiTags('Admin')
@@ -31,6 +39,7 @@ import { RateLimitInteractionService } from '../rate-limit/rate-limit-interactio
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
+    private readonly analyticsService: AdminAnalyticsService,
     private readonly rateLimitService: RateLimitInteractionService,
   ) {}
 
@@ -61,7 +70,11 @@ export class AdminController {
     @Body() dto: CorrectBalanceDto,
     @Request() req: any,
   ): Promise<{ message: string; user: User }> {
-    const user = await this.adminService.correctBalance(userId, req.user.id, dto);
+    const user = await this.adminService.correctBalance(
+      userId,
+      req.user.id,
+      dto,
+    );
     return {
       message: 'Balance corrected successfully',
       user,
@@ -78,7 +91,11 @@ export class AdminController {
     @Body() dto: CorrectMatchDto,
     @Request() req: any,
   ): Promise<{ message: string; match: Match }> {
-    const match = await this.adminService.correctMatch(matchId, req.user.id, dto);
+    const match = await this.adminService.correctMatch(
+      matchId,
+      req.user.id,
+      dto,
+    );
     return {
       message: 'Match details corrected successfully',
       match,
@@ -94,8 +111,17 @@ export class AdminController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
     @Query('actionType') actionType?: AdminActionType,
-  ): Promise<{ data: AdminAuditLog[]; total: number; page: number; limit: number }> {
-    const result = await this.adminService.getAuditLogs(page, limit, actionType);
+  ): Promise<{
+    data: AdminAuditLog[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.adminService.getAuditLogs(
+      page,
+      limit,
+      actionType,
+    );
     return {
       ...result,
       page,
@@ -112,10 +138,68 @@ export class AdminController {
     @Param('id', new ParseUUIDPipe()) userId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 50,
-  ): Promise<{ data: AdminAuditLog[]; total: number; page: number; limit: number }> {
-    const result = await this.adminService.getUserAuditLogs(userId, page, limit);
+  ): Promise<{
+    data: AdminAuditLog[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const result = await this.adminService.getUserAuditLogs(
+      userId,
+      page,
+      limit,
+    );
     return {
       ...result,
+      page,
+      limit,
+    };
+  }
+  // ------------------------------
+  // New Analytics Endpoints (#147)
+  // ------------------------------
+
+  // ------------------------------
+  // New Analytics Endpoints (#147)
+  // ------------------------------
+
+  @Get('analytics/users/total')
+  async totalUsers() {
+    return { total: await this.analyticsService.getTotalUsers() };
+  }
+
+  @Get('analytics/staked/total')
+  async totalStaked() {
+    return { total: await this.analyticsService.getTotalStaked() };
+  }
+
+  @Get('analytics/treasury/total')
+  async treasuryBalance() {
+    return { total: await this.analyticsService.getTreasuryBalance() };
+  }
+
+  @Get('analytics/spin/revenue-payouts')
+  async spinRevenueVsPayouts() {
+    return await this.analyticsService.getSpinRevenueVsPayouts();
+  }
+
+  @Get('analytics/bets/open')
+  async openBets() {
+    return { total: await this.analyticsService.getOpenBets() };
+  }
+
+  @Get('analytics/users/suspicious')
+  async suspiciousUsers(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 50,
+  ) {
+    const users = await this.analyticsService.getSuspiciousUsers();
+    // Simple pagination for large result sets
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    return {
+      data: users.slice(start, end),
+      total: users.length,
       page,
       limit,
     };

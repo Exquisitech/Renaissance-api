@@ -112,7 +112,9 @@ export class AddSpinTable1769263285299 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop foreign key constraint
-    await queryRunner.query(`ALTER TABLE "spins" DROP CONSTRAINT "FK_spins_user_id"`);
+    await queryRunner.query(
+      `ALTER TABLE "spins" DROP CONSTRAINT "FK_spins_user_id"`,
+    );
 
     // Drop indexes
     await queryRunner.dropIndex('spins', 'IDX_spins_user_id');

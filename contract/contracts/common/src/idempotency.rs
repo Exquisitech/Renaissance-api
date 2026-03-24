@@ -42,11 +42,7 @@ pub fn ensure_not_replayed(
     Ok(())
 }
 
-pub fn cleanup_operation(
-    env: &Env,
-    scope: Symbol,
-    operation_hash: BytesN<32>,
-) -> bool {
+pub fn cleanup_operation(env: &Env, scope: Symbol, operation_hash: BytesN<32>) -> bool {
     let key = DataKey::ExecutedOp(scope, operation_hash);
     let storage = env.storage().persistent();
 
@@ -76,6 +72,7 @@ fn is_expired(env: &Env, record: &ExecutionRecord) -> bool {
     }
 }
 
+#[allow(deprecated)] // keep (topic, payload) format for indexer compatibility
 fn emit_replay_rejected(env: &Env, scope: Symbol, operation_hash: BytesN<32>) {
     let event = ReplayRejectedEvent {
         operation_hash,

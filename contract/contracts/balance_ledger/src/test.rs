@@ -200,7 +200,7 @@ fn get_total_prevents_overflow() {
     // Actually half_max + half_max = max - 1, which is fine
     // Let's set values that will definitely overflow
     client.set_balance(&user, &max, &1);
-    
+
     let result = client.try_get_total(&user);
     assert_eq!(result, Err(Ok(BalanceLedgerError::Overflow)));
 }
@@ -318,7 +318,7 @@ fn set_balance_without_backend_auth_fails() {
     let client = BalanceLedgerContractClient::new(&env, &contract_id);
 
     client.initialize(&backend);
-    
+
     // Don't mock auths - should fail
     client.set_balance(&user, &1000, &500);
 }
@@ -333,7 +333,7 @@ fn apply_delta_without_backend_auth_fails() {
     let client = BalanceLedgerContractClient::new(&env, &contract_id);
 
     client.initialize(&backend);
-    
+
     // Don't mock auths - should fail
     client.apply_delta(&user, &100, &-50);
 }
@@ -348,7 +348,7 @@ fn lock_funds_without_backend_auth_fails() {
     let client = BalanceLedgerContractClient::new(&env, &contract_id);
 
     client.initialize(&backend);
-    
+
     // Don't mock auths - should fail
     client.lock_funds(&user, &100);
 }
@@ -363,7 +363,7 @@ fn unlock_funds_without_backend_auth_fails() {
     let client = BalanceLedgerContractClient::new(&env, &contract_id);
 
     client.initialize(&backend);
-    
+
     // Don't mock auths - should fail
     client.unlock_funds(&user, &100);
 }
@@ -378,7 +378,7 @@ fn record_metrics_without_backend_auth_fails() {
     let client = BalanceLedgerContractClient::new(&env, &contract_id);
 
     client.initialize(&backend);
-    
+
     // Don't mock auths - should fail
     client.record_metrics(&user, &100, &50, &25);
 }
@@ -632,7 +632,7 @@ fn record_metrics_with_zero_deltas_succeeds() {
 
     // Record zero deltas
     let metrics = client.record_metrics(&user, &0, &0, &0);
-    
+
     assert_eq!(metrics.total_staked, 100);
     assert_eq!(metrics.total_won, 50);
     assert_eq!(metrics.total_lost, 25);

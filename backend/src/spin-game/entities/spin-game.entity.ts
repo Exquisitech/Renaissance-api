@@ -1,10 +1,4 @@
-import { 
-  Entity, 
-  Column, 
-  ManyToOne,
-  JoinColumn,
-  Index
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -23,9 +17,7 @@ export enum SpinStatus {
 }
 
 @Entity('spin_games')
-
 export class SpinGame extends BaseEntity {
-
   @Column({ name: 'user_id', type: 'varchar', length: 56 })
   userId: string;
 
@@ -39,22 +31,22 @@ export class SpinGame extends BaseEntity {
   @Column({ name: 'stake_asset', type: 'varchar', length: 10, default: 'XLM' })
   stakeAsset: string;
 
-  @Column({ 
-    name: 'reward_type', 
-    type: 'enum', 
-    enum: RewardType 
+  @Column({
+    name: 'reward_type',
+    type: 'enum',
+    enum: RewardType,
   })
   rewardType: RewardType;
 
   @Column({ name: 'reward_value', type: 'varchar' })
   rewardValue: string;
 
-  @Column({ 
-    name: 'win_amount', 
-    type: 'decimal', 
-    precision: 20, 
+  @Column({
+    name: 'win_amount',
+    type: 'decimal',
+    precision: 20,
     scale: 7,
-    nullable: true 
+    nullable: true,
   })
   winAmount: number | null;
 
@@ -71,10 +63,10 @@ export class SpinGame extends BaseEntity {
   @Column({ type: 'text' })
   seed: string;
 
-  @Column({ 
-    type: 'enum', 
+  @Column({
+    type: 'enum',
     enum: SpinStatus,
-    default: SpinStatus.COMPLETED 
+    default: SpinStatus.COMPLETED,
   })
   status: SpinStatus;
 

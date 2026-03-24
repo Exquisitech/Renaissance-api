@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddContractEventListenerState1769600000000
-  implements MigrationInterface
-{
+export class AddContractEventListenerState1769600000000 implements MigrationInterface {
   name = 'AddContractEventListenerState1769600000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

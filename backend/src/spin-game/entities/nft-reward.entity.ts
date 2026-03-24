@@ -1,11 +1,4 @@
-import { 
-  Entity, 
-  Column, 
-  ManyToOne,
-  JoinColumn,
-  Index,
-  Unique
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index, Unique } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
@@ -18,9 +11,7 @@ export enum NFTTier {
 
 @Entity('nft_rewards')
 @Unique(['nftContractAddress', 'nftId'])
-
 export class NFTReward extends BaseEntity {
-
   @Column({ name: 'user_id', type: 'varchar', length: 56 })
   userId: string;
 
@@ -37,10 +28,10 @@ export class NFTReward extends BaseEntity {
   @Column({ name: 'metadata_uri', type: 'varchar', nullable: true })
   metadataUri: string | null;
 
-  @Column({ 
-    type: 'enum', 
+  @Column({
+    type: 'enum',
     enum: NFTTier,
-    default: NFTTier.COMMON
+    default: NFTTier.COMMON,
   })
   tier: NFTTier;
 

@@ -19,7 +19,7 @@ fn setup_test(env: &Env) -> (BettingContractClient<'_>, Address, Address) {
 fn test_place_bet_success() {
     let env = Env::default();
     env.mock_all_auths();
-    
+
     let (client, _backend_signer, bettor) = setup_test(&env);
     let token_admin = Address::generate(&env);
     let token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
@@ -46,7 +46,7 @@ fn test_place_bet_success() {
 fn test_prevent_double_betting() {
     let env = Env::default();
     env.mock_all_auths();
-    
+
     let (client, backend_signer, bettor) = setup_test(&env);
     let token_admin = Address::generate(&env);
     let token_contract = env.register_stellar_asset_contract_v2(token_admin);
@@ -76,7 +76,7 @@ fn test_prevent_double_betting() {
 fn test_allow_double_betting_when_disabled() {
     let env = Env::default();
     env.mock_all_auths();
-    
+
     let (client, backend_signer, bettor) = setup_test(&env);
     let token_admin = Address::generate(&env);
     let token_contract = env.register_stellar_asset_contract_v2(token_admin);
@@ -224,7 +224,7 @@ fn get_spin_execution_for_nonexistent_spin_fails() {
     client.initialize(&backend_signer);
 
     let nonexistent_spin_id = BytesN::from_array(&env, &[99u8; 32]);
-    
+
     let result = client.try_get_spin_execution(&nonexistent_spin_id);
     assert_eq!(result, Err(Ok(ContractError::SpinNotFound)));
 }
@@ -241,7 +241,7 @@ fn is_spin_executed_returns_false_for_new_spin() {
     client.initialize(&backend_signer);
 
     let new_spin_id = BytesN::from_array(&env, &[1u8; 32]);
-    
+
     assert!(!client.is_spin_executed(&new_spin_id));
 }
 
@@ -257,7 +257,7 @@ fn is_spin_hash_used_returns_false_for_new_hash() {
     client.initialize(&backend_signer);
 
     let new_spin_hash = BytesN::from_array(&env, &[1u8; 32]);
-    
+
     assert!(!client.is_spin_hash_used(&new_spin_hash));
 }
 
@@ -273,7 +273,7 @@ fn cleanup_spin_hash_returns_false_for_nonexistent_hash() {
     client.initialize(&backend_signer);
 
     let nonexistent_hash = BytesN::from_array(&env, &[99u8; 32]);
-    
+
     assert!(!client.cleanup_spin_hash(&nonexistent_hash));
 }
 
@@ -295,7 +295,7 @@ fn cleanup_spin_hash_returns_false_before_ttl_expires() {
 
     // Execute with 100 second TTL
     client.execute_spin_with_ttl(&spin_id, &spin_hash, &signature, &executor, &Some(100));
-    
+
     // Advance time but not past TTL
     env.ledger().with_mut(|li| {
         li.timestamp += 50;
@@ -325,7 +325,7 @@ fn different_spin_ids_same_hash_replay_fails() {
 
     // First execution succeeds
     client.execute_spin(&spin_id1, &same_spin_hash, &signature, &executor);
-    
+
     // Second execution with different spin_id but same hash should fail
     let result = client.try_execute_spin(&spin_id2, &same_spin_hash, &signature, &executor);
     assert_eq!(result, Err(Ok(ContractError::DuplicateOperation)));
@@ -350,7 +350,7 @@ fn same_spin_id_different_hash_fails() {
 
     // First execution succeeds
     client.execute_spin(&same_spin_id, &spin_hash1, &signature, &executor);
-    
+
     // Second execution with same spin_id but different hash should fail
     let result = client.try_execute_spin(&same_spin_id, &spin_hash2, &signature, &executor);
     assert_eq!(result, Err(Ok(ContractError::SpinAlreadyExecuted)));
@@ -434,7 +434,7 @@ fn execute_spin_with_zero_ttl_immediate_cleanup() {
     // Execute with 0 TTL - operation is immediately expired per is_expired logic
     // (timestamp - executed_at >= 0 is always true when timestamp >= executed_at)
     client.execute_spin_with_ttl(&spin_id, &spin_hash, &signature, &executor, &Some(0));
-    
+
     // With TTL of 0, the operation is considered expired immediately
     // so it won't be stored (it gets cleaned up during ensure_not_replayed)
     // This is existing contract behavior, not a bug

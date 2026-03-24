@@ -1,31 +1,28 @@
-import { 
-  Injectable, 
-  Logger, 
-  BadRequestException, 
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { 
-  SPIN_GAME_CONFIG, 
-  SpinGameConfig 
-} from './config/spin-game.config';
+import { SPIN_GAME_CONFIG, SpinGameConfig } from './config/spin-game.config';
 import { SpinGameRepository } from './repositories/spin-game.repository';
 import { RateLimitInteractionService } from '../rate-limit/rate-limit-interaction.service';
-import { 
-  SpinRequestDto, 
-  SpinResultDto, 
+import {
+  SpinRequestDto,
+  SpinResultDto,
   RewardType,
   NFTTier,
   UserSpinStatsDto,
   SpinEligibilityDto,
 } from './dto/spin-game.dto';
-import { 
-  SpinGame, 
+import {
+  SpinGame,
   SpinStatus,
   UserSpinStats,
   FreeBetReward,
-  NFTReward
+  NFTReward,
 } from './entities';
 import { createHash, randomBytes } from 'crypto';
 import { FreeBetVoucherService } from '../free-bet-vouchers/free-bet-vouchers.service';
@@ -48,7 +45,7 @@ export class SpinGameService {
    */
   async checkEligibility(userId: string): Promise<SpinEligibilityDto> {
     const stats = await this.spinGameRepo.getUserStats(userId);
-    
+
     if (!stats) {
       return {
         isEligible: true,
@@ -61,7 +58,7 @@ export class SpinGameService {
 
     // Reset daily stats if needed
     const updatedStats = await this.spinGameRepo.resetDailyStatsIfNeeded(stats);
-    
+
     // Check daily spin limit
     if (updatedStats.spinsToday >= this.config.DAILY_SPIN_LIMIT) {
       return {
@@ -77,18 +74,22 @@ export class SpinGameService {
     // Check cool-down period
     if (updatedStats.lastSpinDate) {
       const now = new Date();
-      const timeSinceLastSpin = now.getTime() - updatedStats.lastSpinDate.getTime();
+      const timeSinceLastSpin =
+        now.getTime() - updatedStats.lastSpinDate.getTime();
       const cooldownMs = this.config.SPIN_COOLDOWN_SECONDS * 1000;
-      
+
       if (timeSinceLastSpin < cooldownMs) {
         const waitSeconds = Math.ceil((cooldownMs - timeSinceLastSpin) / 1000);
-        const nextAvailableAt = new Date(now.getTime() + (cooldownMs - timeSinceLastSpin));
-        
+        const nextAvailableAt = new Date(
+          now.getTime() + (cooldownMs - timeSinceLastSpin),
+        );
+
         return {
           isEligible: false,
           reason: `Please wait ${waitSeconds} seconds before spinning again`,
           nextAvailableAt,
-          remainingDailySpins: this.config.DAILY_SPIN_LIMIT - updatedStats.spinsToday,
+          remainingDailySpins:
+            this.config.DAILY_SPIN_LIMIT - updatedStats.spinsToday,
           dailyStakeLimit: this.config.DAILY_STAKE_LIMIT,
           minimumStake: this.config.MINIMUM_STAKE,
           maximumStake: this.config.MAXIMUM_STAKE,
@@ -98,7 +99,8 @@ export class SpinGameService {
 
     return {
       isEligible: true,
-      remainingDailySpins: this.config.DAILY_SPIN_LIMIT - updatedStats.spinsToday,
+      remainingDailySpins:
+        this.config.DAILY_SPIN_LIMIT - updatedStats.spinsToday,
       dailyStakeLimit: this.config.DAILY_STAKE_LIMIT,
       minimumStake: this.config.MINIMUM_STAKE,
       maximumStake: this.config.MAXIMUM_STAKE,
@@ -108,17 +110,20 @@ export class SpinGameService {
   /**
    * Execute a spin with verifiable randomness
    */
-  async executeSpin(userId: string, dto: SpinRequestDto): Promise<SpinResultDto> {
+  async executeSpin(
+    userId: string,
+    dto: SpinRequestDto,
+  ): Promise<SpinResultDto> {
     // Validate stake amount
     if (dto.stakeAmount < this.config.MINIMUM_STAKE) {
       throw new BadRequestException(
-        `Minimum stake is ${this.config.MINIMUM_STAKE} XLM`
+        `Minimum stake is ${this.config.MINIMUM_STAKE} XLM`,
       );
     }
 
     if (dto.stakeAmount > this.config.MAXIMUM_STAKE) {
       throw new BadRequestException(
-        `Maximum stake is ${this.config.MAXIMUM_STAKE} XLM`
+        `Maximum stake is ${this.config.MAXIMUM_STAKE} XLM`,
       );
     }
 
@@ -131,7 +136,7 @@ export class SpinGameService {
     // Check if user has accepted terms for large stakes
     if (dto.stakeAmount >= 100 && !dto.acceptTerms) {
       throw new BadRequestException(
-        'You must accept the terms and conditions for stakes over 100 XLM'
+        'You must accept the terms and conditions for stakes over 100 XLM',
       );
     }
 
@@ -139,27 +144,27 @@ export class SpinGameService {
     const clientSeed = dto.clientSeed || randomBytes(32).toString('hex');
     const serverSeed = randomBytes(32).toString('hex');
     const nonce = Date.now().toString();
-    
+
     // Create provably fair hash
     const combinedSeed = `${clientSeed}:${serverSeed}:${nonce}`;
     const hash = createHash('sha256').update(combinedSeed).digest('hex');
-    
+
     // Convert hash to number between 0-99.9999
     const randomValue = (parseInt(hash.substring(0, 8), 16) % 1000000) / 10000;
-    
+
     // Apply streak bonuses if any
     const streakBonus = await this.applyStreakBonus(userId, randomValue);
     const finalRandomValue = streakBonus.adjustedValue;
-    
+
     // Determine reward type
     const rewardType = this.determineRewardType(finalRandomValue);
-    
+
     // Calculate reward
     const rewardResult = await this.calculateReward(
       userId,
       dto.stakeAmount,
       rewardType,
-      finalRandomValue
+      finalRandomValue,
     );
 
     // Save everything in a transaction
@@ -176,7 +181,7 @@ export class SpinGameService {
         originalRandomValue: randomValue,
         streakBonus: streakBonus.bonusApplied,
       },
-      combinedSeed
+      combinedSeed,
     );
 
     // Check for suspicious activity
@@ -209,18 +214,18 @@ export class SpinGameService {
    */
   private async applyStreakBonus(
     userId: string,
-    randomValue: number
-  ): Promise<{ 
-    adjustedValue: number; 
+    randomValue: number,
+  ): Promise<{
+    adjustedValue: number;
     bonusApplied: boolean;
     message?: string;
   }> {
     const stats = await this.spinGameRepo.getUserStats(userId);
-    
+
     if (!stats || stats.currentStreak < 5) {
-      return { 
-        adjustedValue: randomValue, 
-        bonusApplied: false 
+      return {
+        adjustedValue: randomValue,
+        bonusApplied: false,
       };
     }
 
@@ -257,12 +262,20 @@ export class SpinGameService {
    */
   private determineRewardType(randomValue: number): RewardType {
     const { PROBABILITY_DISTRIBUTION } = this.config;
-    
+
     if (randomValue < PROBABILITY_DISTRIBUTION.LOSS) {
       return RewardType.LOSS;
-    } else if (randomValue < PROBABILITY_DISTRIBUTION.LOSS + PROBABILITY_DISTRIBUTION.XLM_REWARD) {
+    } else if (
+      randomValue <
+      PROBABILITY_DISTRIBUTION.LOSS + PROBABILITY_DISTRIBUTION.XLM_REWARD
+    ) {
       return RewardType.XLM_REWARD;
-    } else if (randomValue < PROBABILITY_DISTRIBUTION.LOSS + PROBABILITY_DISTRIBUTION.XLM_REWARD + PROBABILITY_DISTRIBUTION.FREE_BET_REWARD) {
+    } else if (
+      randomValue <
+      PROBABILITY_DISTRIBUTION.LOSS +
+        PROBABILITY_DISTRIBUTION.XLM_REWARD +
+        PROBABILITY_DISTRIBUTION.FREE_BET_REWARD
+    ) {
       return RewardType.FREE_BET_REWARD;
     } else {
       return RewardType.NFT_REWARD;
@@ -276,7 +289,7 @@ export class SpinGameService {
     userId: string,
     stakeAmount: number,
     rewardType: RewardType,
-    randomValue: number
+    randomValue: number,
   ): Promise<{
     rewardType: RewardType;
     rewardValue: string;
@@ -287,13 +300,17 @@ export class SpinGameService {
     switch (rewardType) {
       case RewardType.XLM_REWARD:
         return this.calculateXLMReward(stakeAmount, randomValue);
-        
+
       case RewardType.FREE_BET_REWARD:
-        return await this.calculateFreeBetReward(userId, stakeAmount, randomValue);
-        
+        return await this.calculateFreeBetReward(
+          userId,
+          stakeAmount,
+          randomValue,
+        );
+
       case RewardType.NFT_REWARD:
         return await this.calculateNFTReward(userId, randomValue);
-        
+
       case RewardType.LOSS:
       default:
         return {
@@ -309,7 +326,7 @@ export class SpinGameService {
    */
   private calculateXLMReward(
     stakeAmount: number,
-    randomValue: number
+    randomValue: number,
   ): {
     rewardType: RewardType;
     rewardValue: string;
@@ -318,18 +335,18 @@ export class SpinGameService {
     requiresKYC?: boolean;
   } {
     const { XLM_REWARD_TIERS } = this.config;
-    
+
     // Normalize random value for tier selection (within XLM reward range)
     const tierRandom = randomValue % 100;
     let cumulativeProbability = 0;
-    
+
     for (const tier of XLM_REWARD_TIERS) {
       cumulativeProbability += tier.probability;
       if (tierRandom < cumulativeProbability) {
         const winAmount = parseFloat(
-          Math.min(stakeAmount * tier.multiplier, tier.maxAmount).toFixed(7)
+          Math.min(stakeAmount * tier.multiplier, tier.maxAmount).toFixed(7),
         );
-        
+
         return {
           rewardType: RewardType.XLM_REWARD,
           rewardValue: tier.name,
@@ -339,13 +356,16 @@ export class SpinGameService {
         };
       }
     }
-    
+
     // Fallback to first tier
     const fallbackTier = XLM_REWARD_TIERS[0];
     const winAmount = parseFloat(
-      Math.min(stakeAmount * fallbackTier.multiplier, fallbackTier.maxAmount).toFixed(7)
+      Math.min(
+        stakeAmount * fallbackTier.multiplier,
+        fallbackTier.maxAmount,
+      ).toFixed(7),
     );
-    
+
     return {
       rewardType: RewardType.XLM_REWARD,
       rewardValue: fallbackTier.name,
@@ -359,19 +379,19 @@ export class SpinGameService {
   private async calculateFreeBetReward(
     userId: string,
     stakeAmount: number,
-    randomValue: number
+    randomValue: number,
   ): Promise<{
     rewardType: RewardType;
     rewardValue: string;
     winAmount: number;
   }> {
     const { FREE_BET_TIERS } = this.config;
-    
+
     // Determine free bet multiplier
     const tierRandom = randomValue % 100;
     let cumulativeProbability = 0;
     let selectedTier = FREE_BET_TIERS[0];
-    
+
     for (const tier of FREE_BET_TIERS) {
       cumulativeProbability += tier.probability;
       if (tierRandom < cumulativeProbability) {
@@ -379,9 +399,9 @@ export class SpinGameService {
         break;
       }
     }
-    
+
     const freeBetAmount = stakeAmount * selectedTier.multiplier;
-    
+
     // Create free bet with expiry
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + selectedTier.validityDays);
@@ -395,7 +415,7 @@ export class SpinGameService {
         isWithdrawable: selectedTier.withdrawable,
       },
     });
-    
+
     return {
       rewardType: RewardType.FREE_BET_REWARD,
       rewardValue: freeBet.id,
@@ -408,35 +428,35 @@ export class SpinGameService {
    */
   private async calculateNFTReward(
     userId: string,
-    randomValue: number
+    randomValue: number,
   ): Promise<{
     rewardType: RewardType;
     rewardValue: string;
     winAmount: number;
   }> {
     const { NFT_TIER_PROBABILITIES, NFT_CONFIG } = this.config;
-    
+
     // Determine NFT tier
     const tierRandom = randomValue % 100;
     let cumulativeProbability = 0;
     let selectedTier: NFTTier = NFTTier.COMMON;
-    
+
     for (const [tier, probability] of Object.entries(NFT_TIER_PROBABILITIES)) {
-      cumulativeProbability += (probability as number);
+      cumulativeProbability += probability as number;
       if (tierRandom < cumulativeProbability) {
         selectedTier = tier as NFTTier;
         break;
       }
     }
-    
+
     // Generate unique NFT ID
     const nftId = `RENAISSANCE_${selectedTier}_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
-    
+
     // Calculate rarity score
     const rarityScore = this.calculateRarityScore(selectedTier);
-    
+
     const nftReward = await this.spinGameRepo.createNFTReward({
       userId,
       nftContractAddress: this.configService.get('NFT_CONTRACT_ADDRESS'),
@@ -445,7 +465,7 @@ export class SpinGameService {
       isWithdrawable: NFT_CONFIG[selectedTier].withdrawable,
       rarityScore,
     });
-    
+
     return {
       rewardType: RewardType.NFT_REWARD,
       rewardValue: nftReward.id,
@@ -463,7 +483,7 @@ export class SpinGameService {
       [NFTTier.EPIC]: 200,
       [NFTTier.LEGENDARY]: 1000,
     };
-    
+
     return scores[tier] || 10;
   }
 
@@ -475,13 +495,13 @@ export class SpinGameService {
     stakeAmount: number,
     rewardResult: any,
     spinData: any,
-    seed: string
+    seed: string,
   ): Promise<SpinGame> {
     const queryRunner = this.dataSource.createQueryRunner();
-    
+
     await queryRunner.connect();
     await queryRunner.startTransaction();
-    
+
     try {
       // Create spin record
       const spin = await queryRunner.manager.save(SpinGame, {
@@ -494,12 +514,12 @@ export class SpinGameService {
         seed,
         status: SpinStatus.COMPLETED,
       });
-      
+
       // Update user stats
       let stats = await queryRunner.manager.findOne(UserSpinStats, {
         where: { userId },
       });
-      
+
       if (!stats) {
         stats = queryRunner.manager.create(UserSpinStats, {
           userId,
@@ -516,7 +536,7 @@ export class SpinGameService {
         // However, if we don't save it first, update below might fail if we assume it exists?
         // Actually we save at the end.
       }
-      
+
       // Reset daily stats if needed
       const today = new Date();
       const lastReset = new Date(stats.lastResetDate);
@@ -528,29 +548,34 @@ export class SpinGameService {
         stats.spinsToday = 0;
         stats.lastResetDate = today;
       }
-      
+
       // Update stats
       stats.totalSpins += 1;
       stats.totalStaked += stakeAmount;
       stats.spinsToday += 1;
-      
-      if (rewardResult.rewardType !== RewardType.LOSS && rewardResult.winAmount) {
+
+      if (
+        rewardResult.rewardType !== RewardType.LOSS &&
+        rewardResult.winAmount
+      ) {
         stats.totalWon += rewardResult.winAmount;
         stats.currentStreak = 0;
       } else {
         stats.currentStreak += 1;
         stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
       }
-      
+
       stats.lastSpinDate = new Date();
       await queryRunner.manager.save(UserSpinStats, stats);
-      
+
       await queryRunner.commitTransaction();
       return spin;
-      
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      this.logger.error(`Failed to save spin result: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to save spin result: ${error.message}`,
+        error.stack,
+      );
       throw error;
     } finally {
       await queryRunner.release();
@@ -562,24 +587,31 @@ export class SpinGameService {
    */
   private async checkForSuspiciousActivity(
     userId: string,
-    spinResult: SpinGame
+    spinResult: SpinGame,
   ): Promise<void> {
     // Check for large wins
-    if (spinResult.winAmount && spinResult.winAmount > this.config.SECURITY.LARGE_WIN_THRESHOLD) {
+    if (
+      spinResult.winAmount &&
+      spinResult.winAmount > this.config.SECURITY.LARGE_WIN_THRESHOLD
+    ) {
       await this.spinGameRepo.flagSuspiciousSpin(spinResult.id);
-      this.logger.warn(`Large win detected: User ${userId} won ${spinResult.winAmount} XLM`);
+      this.logger.warn(
+        `Large win detected: User ${userId} won ${spinResult.winAmount} XLM`,
+      );
     }
-    
+
     // Check for winning streak
     const recentWins = await this.spinGameRepo.getRecentWins(userId, 5);
     if (recentWins.length >= this.config.SECURITY.MAX_WINNING_STREAK) {
-      const allRecentWins = recentWins.every(win => 
-        win.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const allRecentWins = recentWins.every(
+        (win) => win.createdAt > new Date(Date.now() - 24 * 60 * 60 * 1000),
       );
-      
+
       if (allRecentWins) {
         await this.spinGameRepo.flagSuspiciousSpin(spinResult.id);
-        this.logger.warn(`Winning streak detected: User ${userId} has ${recentWins.length} consecutive wins`);
+        this.logger.warn(
+          `Winning streak detected: User ${userId} has ${recentWins.length} consecutive wins`,
+        );
       }
     }
   }
@@ -589,7 +621,9 @@ export class SpinGameService {
    */
   private getNextSpinAvailableTime(): Date {
     const nextTime = new Date();
-    nextTime.setSeconds(nextTime.getSeconds() + this.config.SPIN_COOLDOWN_SECONDS);
+    nextTime.setSeconds(
+      nextTime.getSeconds() + this.config.SPIN_COOLDOWN_SECONDS,
+    );
     return nextTime;
   }
 
@@ -598,7 +632,7 @@ export class SpinGameService {
    */
   async getUserStatistics(userId: string): Promise<UserSpinStatsDto> {
     const stats = await this.spinGameRepo.getUserStats(userId);
-    
+
     if (!stats) {
       return {
         totalSpins: 0,
@@ -621,7 +655,10 @@ export class SpinGameService {
       netProfit: stats.totalWon - stats.totalStaked,
       winRate: stats.totalSpins > 0 ? (stats.totalWon > 0 ? 1 : 0) : 0, // Simplified win rate
       spinsToday: stats.spinsToday,
-      remainingDailySpins: Math.max(0, this.config.DAILY_SPIN_LIMIT - stats.spinsToday),
+      remainingDailySpins: Math.max(
+        0,
+        this.config.DAILY_SPIN_LIMIT - stats.spinsToday,
+      ),
       currentStreak: stats.currentStreak,
       maxStreak: stats.maxStreak,
       lastSpinDate: stats.lastSpinDate,

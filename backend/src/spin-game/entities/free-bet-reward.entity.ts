@@ -1,17 +1,9 @@
-import { 
-  Entity, 
-  Column, 
-  ManyToOne,
-  JoinColumn,
-  Index
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('free_bet_rewards')
-
 export class FreeBetReward extends BaseEntity {
-
   @Column({ name: 'user_id', type: 'varchar', length: 56 })
   userId: string;
 
@@ -31,10 +23,10 @@ export class FreeBetReward extends BaseEntity {
   @Column({ name: 'used_at', type: 'timestamp', nullable: true })
   usedAt: Date | null;
 
-  @Column({ 
-    type: 'enum', 
+  @Column({
+    type: 'enum',
     enum: ['SPIN_GAME', 'PROMOTION', 'REFERRAL'],
-    default: 'SPIN_GAME'
+    default: 'SPIN_GAME',
   })
   source: string;
 

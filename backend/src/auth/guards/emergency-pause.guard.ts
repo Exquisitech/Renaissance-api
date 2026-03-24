@@ -27,10 +27,11 @@ export class EmergencyPauseGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const emergencyMetadata = this.reflector.getAllAndOverride<EmergencyPauseMetadata>(
-      EMERGENCY_PAUSE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const emergencyMetadata =
+      this.reflector.getAllAndOverride<EmergencyPauseMetadata>(
+        EMERGENCY_PAUSE_KEY,
+        [context.getHandler(), context.getClass()],
+      );
 
     // If no emergency metadata, allow access (not an emergency action)
     if (!emergencyMetadata) {
@@ -41,8 +42,12 @@ export class EmergencyPauseGuard implements CanActivate {
     const user = request.user;
 
     if (!user || !user.role) {
-      this.logger.warn(`Emergency action '${emergencyMetadata.action}' attempted without authentication`);
-      throw new ForbiddenException('Access denied: Authentication required for emergency actions');
+      this.logger.warn(
+        `Emergency action '${emergencyMetadata.action}' attempted without authentication`,
+      );
+      throw new ForbiddenException(
+        'Access denied: Authentication required for emergency actions',
+      );
     }
 
     // Only EMERGENCY_PAUSE and ADMIN can perform emergency actions

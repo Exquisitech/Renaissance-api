@@ -9,11 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match } from './entities/match.entity';
 import { MatchStatus, MatchOutcome } from '../common/enums/match.enums';
-import {
-  CreateMatchDto,
-  UpdateMatchDto,
-  UpdateMatchStatusDto,
-} from './dto';
+import { CreateMatchDto, UpdateMatchDto, UpdateMatchStatusDto } from './dto';
 import { CacheInvalidationService } from '../common/cache/cache-invalidation.service';
 import { MatchFinishedEvent } from './events/match-finished.event';
 import { OddsService } from '../odds/odds.service';
@@ -361,10 +357,7 @@ export class MatchesService {
   /**
    * Calculate match outcome based on scores
    */
-  private calculateOutcome(
-    homeScore: number,
-    awayScore: number,
-  ): MatchOutcome {
+  private calculateOutcome(homeScore: number, awayScore: number): MatchOutcome {
     if (homeScore > awayScore) {
       return MatchOutcome.HOME_WIN;
     } else if (awayScore > homeScore) {

@@ -25,7 +25,7 @@
 ### ✅ Admin-only endpoints for match correction
 - Endpoint: `POST /admin/matches/:id/correct`
 - Validation: ADMIN role only via `@Roles(UserRole.ADMIN)`
-- JWT Authentication: Required
+- JWT Authentication: Required.
 - Implementation: [admin.controller.ts](backend/src/admin/admin.controller.ts#L70)
 
 ### ✅ All admin actions audited

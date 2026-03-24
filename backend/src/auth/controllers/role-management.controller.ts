@@ -50,7 +50,8 @@ export class RoleManagementController {
   @Post('assign')
   @ApiOperation({
     summary: 'Assign role to user',
-    description: 'Assign a specific role to a user. Only ADMIN can assign privileged roles.',
+    description:
+      'Assign a specific role to a user. Only ADMIN can assign privileged roles.',
   })
   @ApiResponse({
     status: 200,
@@ -116,9 +117,7 @@ export class RoleManagementController {
     summary: 'Get users by role',
     description: 'Get all users with a specific role',
   })
-  async getUsersByRole(
-    @Query('role') role: UserRole,
-  ): Promise<User[]> {
+  async getUsersByRole(@Query('role') role: UserRole): Promise<User[]> {
     return this.roleManagementService.getUsersByRole(role);
   }
 

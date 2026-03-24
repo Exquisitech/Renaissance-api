@@ -7,9 +7,7 @@ import { LeaderboardService } from '../leaderboard.service';
  * Updates leaderboard stats when staking rewards are credited
  */
 @EventsHandler(StakeCreditedEvent)
-export class StakeCreditedEventHandler
-  implements IEventHandler<StakeCreditedEvent>
-{
+export class StakeCreditedEventHandler implements IEventHandler<StakeCreditedEvent> {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
   async handle(event: StakeCreditedEvent): Promise<void> {

@@ -14,9 +14,7 @@ export class AppLogger {
         format.errors({ stack: true }),
         format.json(),
       ),
-      transports: [
-        new transports.Console(),
-      ],
+      transports: [new transports.Console()],
     });
   }
 

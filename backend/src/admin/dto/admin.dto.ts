@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsEnum, IsNumber, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  IsUUID,
+} from 'class-validator';
 import { AdminActionType } from '../entities/admin-audit-log.entity';
 
 export class CancelBetDto {

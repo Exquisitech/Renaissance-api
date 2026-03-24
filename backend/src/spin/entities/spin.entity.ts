@@ -1,8 +1,4 @@
-import {
-  Entity,
-  Column,
-  Index,
-} from 'typeorm';
+import { Entity, Column, Index } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 
 export enum SpinStatus {
@@ -22,9 +18,7 @@ export enum SpinOutcome {
 @Entity('spins')
 @Index(['userId', 'createdAt'])
 @Index(['sessionId'], { unique: true })
-
 export class Spin extends BaseEntity {
-
   @Column('uuid')
   @Index()
   userId: string;

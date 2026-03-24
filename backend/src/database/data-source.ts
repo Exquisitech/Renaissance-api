@@ -20,8 +20,7 @@ export const AppDataSource = new DataSource({
   // Entity path patterns for auto-discovery
   entities: [path.join(__dirname, '/../**/*.entity{.ts,.js}')],
   // Migration patterns - matches numbered migration files
-  migrations: [path.join(__dirname, '/../migrations/*{.ts,.js}'),
-  ],
+  migrations: [path.join(__dirname, '/../migrations/*{.ts,.js}')],
   // CRITICAL: Always false for CLI - migrations handle schema changes
   synchronize: false,
   // Logging for migration debugging

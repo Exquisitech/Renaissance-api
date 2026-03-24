@@ -3,7 +3,8 @@ import { IsInt, Min, Max } from 'class-validator';
 
 export class UpdateRateLimitCooldownDto {
   @ApiProperty({
-    description: 'Cooldown period in seconds between spin/stake actions per user',
+    description:
+      'Cooldown period in seconds between spin/stake actions per user',
     example: 5,
     minimum: 0,
     maximum: 3600,

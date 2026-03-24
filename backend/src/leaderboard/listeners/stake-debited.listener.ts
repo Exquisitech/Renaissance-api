@@ -7,9 +7,7 @@ import { LeaderboardService } from '../leaderboard.service';
  * Updates leaderboard stats when staked tokens are debited
  */
 @EventsHandler(StakeDebitedEvent)
-export class StakeDebitedEventHandler
-  implements IEventHandler<StakeDebitedEvent>
-{
+export class StakeDebitedEventHandler implements IEventHandler<StakeDebitedEvent> {
   constructor(private readonly leaderboardService: LeaderboardService) {}
 
   async handle(event: StakeDebitedEvent): Promise<void> {

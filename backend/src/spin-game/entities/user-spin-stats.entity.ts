@@ -1,16 +1,9 @@
-import { 
-  Entity, 
-  Column, 
-  OneToOne,
-  JoinColumn
-} from 'typeorm';
+import { Entity, Column, OneToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('user_spin_stats')
-
 export class UserSpinStats extends BaseEntity {
-
   @Column({ name: 'user_id', type: 'varchar', length: 56, unique: true })
   userId: string;
 
@@ -21,21 +14,21 @@ export class UserSpinStats extends BaseEntity {
   @Column({ name: 'total_spins', type: 'int', default: 0 })
   totalSpins: number;
 
-  @Column({ 
-    name: 'total_staked', 
-    type: 'decimal', 
-    precision: 30, 
+  @Column({
+    name: 'total_staked',
+    type: 'decimal',
+    precision: 30,
     scale: 7,
-    default: 0 
+    default: 0,
   })
   totalStaked: number;
 
-  @Column({ 
-    name: 'total_won', 
-    type: 'decimal', 
-    precision: 30, 
+  @Column({
+    name: 'total_won',
+    type: 'decimal',
+    precision: 30,
     scale: 7,
-    default: 0 
+    default: 0,
   })
   totalWon: number;
 
