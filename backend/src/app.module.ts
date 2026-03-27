@@ -55,6 +55,7 @@ import { GamificationModule } from './gamification/gamification.module';
 import { Achievement } from './gamification/entities/achievement.entity';
 import { UserAchievement } from './gamification/entities/user-achievement.entity';
 import { WebhookModule } from './webhooks/webhook.module';
+import { FraudModule } from './fraud/fraud.module';
 
 // Custom role-based guard
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
@@ -131,6 +132,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     NotificationsModule,
     GamificationModule,
     WebhookModule,
+    FraudModule,
   ],
   providers: [
     {
