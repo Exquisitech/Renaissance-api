@@ -50,11 +50,16 @@ import { EventListenerModule } from './common/events/event-listener.module';
 import { BetSettlementModule } from './bet-settlement/bet-settlement.module';
 import { OddsModule } from './odds/odds.module';
 // import { NFTModule } from './nft/nft.module';
+import { NFTMarketplaceModule } from './nft/nft-marketplace.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { GamificationModule } from './gamification/gamification.module';
 import { Achievement } from './gamification/entities/achievement.entity';
 import { UserAchievement } from './gamification/entities/user-achievement.entity';
+import { NFTListing } from './nft/entities/nft-listing.entity';
+import { NFTOffer } from './nft/entities/nft-offer.entity';
+import { NFTPlayerCard } from './nft/entities/nft.entity';
 import { Team } from './teams/entities/team.entity';
+
 import { Player } from './players/entities/player.entity';
 import { WebhookModule } from './webhooks/webhook.module';
 import { FraudModule } from './fraud/fraud.module';
@@ -111,6 +116,9 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
       UserLeaderboardStats,
       Achievement,
       UserAchievement,
+      NFTListing,
+      NFTOffer,
+      NFTPlayerCard,
       Team,
       Player,
 
@@ -135,6 +143,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     LoggerModule,
     EventListenerModule,
     // NFTModule,
+    NFTMarketplaceModule,
     ProgressModule,
     SolvencyModule,
     AuditModule,
