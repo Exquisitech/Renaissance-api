@@ -60,6 +60,7 @@ import { WebhookModule } from './webhooks/webhook.module';
 import { FraudModule } from './fraud/fraud.module';
 import { TeamsModule } from './teams/teams.module';
 import { PlayersModule } from './players/players.module';
+import { RankingModule } from './leaderboard/ranking.module';
 
 // Custom role-based guard
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
@@ -141,6 +142,7 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     FraudModule,
     TeamsModule,
     PlayersModule,
+    RankingModule,
   ],
   providers: [
     {

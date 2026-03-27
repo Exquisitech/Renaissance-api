@@ -22,6 +22,9 @@ import { SeasonService } from './services/season.service';
 import { SeasonalLeaderboardService } from './services/seasonal-leaderboard.service';
 import { SeasonResetService } from './services/season-reset.service';
 import { SeasonController } from './controllers/season.controller';
+import { RankingService } from './services/ranking.service';
+import { RankingController } from './controllers/ranking.controller';
+import { Bet } from '../bets/entities/bet.entity';
 
 @Module({
   imports: [
@@ -32,10 +35,11 @@ import { SeasonController } from './controllers/season.controller';
       User,
       Season,
       SeasonalLeaderboard,
+      Bet,
     ]),
     CqrsModule,
   ],
-  controllers: [LeaderboardController, SeasonController],
+  controllers: [LeaderboardController, SeasonController, RankingController],
   providers: [
     LeaderboardService,
     LeaderboardQueryService,
