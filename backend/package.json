@@ -36,11 +36,11 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.0",
-    "@nestjs/websockets": "^11.0.0",
     "@nestjs/swagger": "^11.2.5",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.0",
-    "@stellar/stellar-sdk": "^14.4.3",
+    "@nestjs/websockets": "^11.0.0",
+    "@stellar/stellar-sdk": "^14.6.1",
     "@types/bcrypt": "^6.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
@@ -61,12 +61,12 @@
     "pg": "^8.17.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.7.2",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",
-    "ws": "^8.13.0",
-    "socket.io": "^4.7.2",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -118,7 +118,11 @@
       "!src/**/*.dto.ts"
     ],
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
     "coverageThreshold": {
       "global": {
         "branches": 80,
@@ -128,6 +132,8 @@
       }
     },
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/test/setup.ts"]
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ]
   }
 }

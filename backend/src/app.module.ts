@@ -71,6 +71,8 @@ import { LiveModule } from './live/live.module';
 
 // Custom role-based guard
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
+import { StellarModule } from './stellar/stellar.module';
+import { MatchSettlementModule } from './match-settlement/match-settlement.module';
 
 @Module({
   imports: [
@@ -157,6 +159,10 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
     LiveModule,
 
     RankingModule,
+
+    StellarModule,
+
+    MatchSettlementModule,
   ],
   providers: [
     {
