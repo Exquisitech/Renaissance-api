@@ -68,6 +68,7 @@ import { TeamsModule } from './teams/teams.module';
 import { PlayersModule } from './players/players.module';
 import { RankingModule } from './leaderboard/ranking.module';
 import { LiveModule } from './live/live.module';
+import { TransactionsModule } from './transactions/transactions.module';
 
 // Custom role-based guard
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
@@ -161,6 +162,7 @@ import { MatchSettlementModule } from './match-settlement/match-settlement.modul
     RankingModule,
 
     StellarModule,
+    TransactionsModule,
 
     MatchSettlementModule,
   ],
