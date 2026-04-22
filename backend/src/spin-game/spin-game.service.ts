@@ -26,6 +26,7 @@ import {
 } from './entities';
 import { createHash, randomBytes } from 'crypto';
 import { FreeBetVoucherService } from '../free-bet-vouchers/free-bet-vouchers.service';
+import { JackpotService } from './jackpot.service';
 
 @Injectable()
 export class SpinGameService {
@@ -38,6 +39,7 @@ export class SpinGameService {
     private readonly dataSource: DataSource,
     private readonly rateLimitService: RateLimitInteractionService,
     private readonly freeBetVoucherService: FreeBetVoucherService,
+    private readonly jackpotService: JackpotService,
   ) {}
 
   /**
@@ -189,7 +191,18 @@ export class SpinGameService {
 
     await this.rateLimitService.recordInteraction(userId);
 
-    return {
+    // Process jackpot contribution
+    const stats = await this.spinGameRepo.getUserStats(userId);
+    const spinCount = stats?.spinsToday || 1;
+    const jackpotResult = await this.jackpotService.processJackpotContribution(
+      userId,
+      spinResult.id,
+      dto.stakeAmount,
+      spinCount,
+    );
+
+    // Build response with jackpot info if triggered
+    const response: any = {
       spinId: spinResult.id,
       rewardType: rewardResult.rewardType,
       rewardValue: rewardResult.rewardValue,
@@ -207,6 +220,17 @@ export class SpinGameService {
       message: streakBonus.message,
       nextSpinAvailableAt: this.getNextSpinAvailableTime(),
     };
+
+    // Add jackpot info if triggered
+    if (jackpotResult.triggered) {
+      response.jackpot = {
+        tier: jackpotResult.wonTier,
+        amount: jackpotResult.wonAmount,
+        isJackpotWin: true,
+      };
+    }
+
+    return response;
   }
 
   /**

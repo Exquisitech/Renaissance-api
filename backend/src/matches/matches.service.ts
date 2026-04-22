@@ -4,12 +4,16 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Match } from './entities/match.entity';
 import { MatchStatus, MatchOutcome } from '../common/enums/match.enums';
 import { CreateMatchDto, UpdateMatchDto, UpdateMatchStatusDto } from './dto';
 import { CacheInvalidationService } from '../common/cache/cache-invalidation.service';
+import { MatchFinishedEvent } from './events/match-finished.event';
+import { OddsService } from '../odds/odds.service';
+import { OddsUpdateSource } from '../odds/entities/match-odds-history.entity';
 
 export interface PaginatedMatches {
   data: Match[];
@@ -35,6 +39,8 @@ export class MatchesService {
     @InjectRepository(Match)
     private readonly matchRepository: Repository<Match>,
     private readonly cacheInvalidationService: CacheInvalidationService,
+    private readonly eventBus: EventBus,
+    private readonly oddsService: OddsService,
   ) {}
 
   /**
@@ -167,6 +173,8 @@ export class MatchesService {
     updateMatchDto: UpdateMatchDto,
   ): Promise<Match> {
     const match = await this.getMatchById(matchId);
+    const previousStatus = match.status;
+    const previousOdds = this.extractOdds(match);
 
     // Validate status transitions
     if (updateMatchDto.status) {
@@ -210,6 +218,12 @@ export class MatchesService {
     Object.assign(match, updateMatchDto);
     const savedMatch = await this.matchRepository.save(match);
     await this.cacheInvalidationService.invalidatePattern('matches*');
+    await this.oddsService.handleDirectMatchOddsUpdate(savedMatch, previousOdds, {
+      source: OddsUpdateSource.MATCH_UPDATE,
+      reason: 'match_update',
+      metadata: { trigger: 'matches.update' },
+    });
+    await this.publishMatchFinishedEventIfNeeded(previousStatus, savedMatch);
     return savedMatch;
   }
 
@@ -221,6 +235,8 @@ export class MatchesService {
     updateStatusDto: UpdateMatchStatusDto,
   ): Promise<Match> {
     const match = await this.getMatchById(matchId);
+    const previousStatus = match.status;
+    const previousOdds = this.extractOdds(match);
 
     // Validate status transition
     this.validateStatusTransition(match.status, updateStatusDto.status);
@@ -243,6 +259,12 @@ export class MatchesService {
     Object.assign(match, updateStatusDto);
     const savedMatch = await this.matchRepository.save(match);
     await this.cacheInvalidationService.invalidatePattern('matches*');
+    await this.oddsService.handleDirectMatchOddsUpdate(savedMatch, previousOdds, {
+      source: OddsUpdateSource.MATCH_UPDATE,
+      reason: 'match_status_update',
+      metadata: { trigger: 'matches.update_status' },
+    });
+    await this.publishMatchFinishedEventIfNeeded(previousStatus, savedMatch);
     return savedMatch;
   }
 
@@ -343,5 +365,32 @@ export class MatchesService {
     } else {
       return MatchOutcome.DRAW;
     }
+  }
+
+  private async publishMatchFinishedEventIfNeeded(
+    previousStatus: MatchStatus,
+    match: Match,
+  ): Promise<void> {
+    if (
+      previousStatus !== MatchStatus.FINISHED &&
+      match.status === MatchStatus.FINISHED &&
+      match.outcome
+    ) {
+      this.eventBus.publish(
+        new MatchFinishedEvent(match.id, match.outcome, new Date()),
+      );
+    }
+  }
+
+  private extractOdds(match: Match): {
+    homeOdds: number;
+    drawOdds: number;
+    awayOdds: number;
+  } {
+    return {
+      homeOdds: Number(match.homeOdds),
+      drawOdds: Number(match.drawOdds),
+      awayOdds: Number(match.awayOdds),
+    };
   }
 }

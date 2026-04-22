@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@nestjs/schedule": "^6.1.1",
+    "ethers": "^6.16.0",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/typeorm": "^11.0.0",
     "nest-winston": "^1.10.2",

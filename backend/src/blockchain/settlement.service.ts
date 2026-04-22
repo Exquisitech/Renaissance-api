@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SorobanService } from './soroban.service';
 import { Settlement, SettlementStatus } from './entities/settlement.entity';
+import { rpc } from '@stellar/stellar-sdk';
 
 @Injectable()
 export class SettlementService {
@@ -96,21 +97,39 @@ export class SettlementService {
       }
 
       try {
-        // In a real implementation:
-        // const txStatus = await this.sorobanService.getTransactionStatus(settlement.txHash);
-        // For now, we'll simulate check or assume if it exists it's confirmed or logic needs expansion
-        // This requires adding getTransactionStatus to SorobanService
-
-        // Mock verification:
         this.logger.log(`Verifying tx ${settlement.txHash}...`);
+        const txStatus = await this.sorobanService.getTransactionStatus(
+          settlement.txHash,
+        );
 
-        // Assume success for now
-        settlement.status = SettlementStatus.CONFIRMED;
-        await this.settlementRepository.save(settlement);
-        this.logger.log(`Settlement ${settlement.id} confirmed.`);
+        if (txStatus.status === rpc.Api.GetTransactionStatus.SUCCESS) {
+          settlement.status = SettlementStatus.CONFIRMED;
+          await this.settlementRepository.save(settlement);
+          this.logger.log(`Settlement ${settlement.id} confirmed.`);
+          continue;
+        }
+
+        if (txStatus.status === rpc.Api.GetTransactionStatus.FAILED) {
+          settlement.status = SettlementStatus.FAILED;
+          await this.settlementRepository.save(settlement);
+          this.logger.warn(`Settlement ${settlement.id} failed on-chain.`);
+        }
       } catch (e) {
         this.logger.error(`Error reconciling settlement ${settlement.id}`, e);
       }
     }
+  }
+
+  async getPendingSettlements(): Promise<Settlement[]> {
+    return this.settlementRepository.find({
+      where: { status: SettlementStatus.PENDING },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getSettlementById(id: string): Promise<Settlement | null> {
+    return this.settlementRepository.findOne({
+      where: { id },
+    });
   }
 }

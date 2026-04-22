@@ -39,10 +39,12 @@
     "@nestjs/swagger": "^11.2.5",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.0",
-    "@stellar/stellar-sdk": "^14.4.3",
+    "@nestjs/websockets": "^11.0.0",
+    "@stellar/stellar-sdk": "^14.6.1",
     "@types/bcrypt": "^6.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
+    "axios": "^1.13.6",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.8",
     "cache-manager-redis-store": "^3.0.1",
@@ -50,6 +52,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.10.1",
     "json2csv": "^6.0.0-alpha.2",
     "nest-winston": "^1.10.2",
     "passport": "^0.7.0",
@@ -58,10 +61,12 @@
     "pg": "^8.17.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.7.2",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -69,6 +74,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/axios": "^0.9.36",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
@@ -96,7 +102,7 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
+    "rootDir": ".",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
@@ -105,9 +111,29 @@
       "^uuid$": "uuid"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "src/**/*.ts",
+      "!src/**/*.module.ts",
+      "!src/main.ts",
+      "!src/**/*.entity.ts",
+      "!src/**/*.dto.ts"
     ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    },
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ]
   }
 }

@@ -3,12 +3,13 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
-import { EntityManager, FindOptionsWhere, Repository } from 'typeorm';
+import { EntityManager, FindOptionsWhere, In, Repository } from 'typeorm';
 import { Bet, BetStatus } from '../../bets/entities/bet.entity';
 import {
   ContractEventLog,
@@ -158,6 +159,201 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
       reconnectAttempts: this.reconnectAttempts,
       polling: this.isPolling,
     };
+  }
+
+  async getCheckpointState(): Promise<ContractEventCheckpoint> {
+    return this.ensureCheckpoint();
+  }
+
+  async getEventLogs(params: {
+    page?: number;
+    limit?: number;
+    status?: ContractEventStatus;
+    fromLedger?: number;
+    toLedger?: number;
+  }): Promise<{ data: ContractEventLog[]; total: number }> {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.max(1, Math.min(params.limit ?? 50, 200));
+    const query = this.eventLogRepository.createQueryBuilder('event_log');
+
+    if (params.status) {
+      query.andWhere('event_log.status = :status', { status: params.status });
+    }
+    if (params.fromLedger !== undefined) {
+      query.andWhere('event_log.ledger >= :fromLedger', {
+        fromLedger: params.fromLedger,
+      });
+    }
+    if (params.toLedger !== undefined) {
+      query.andWhere('event_log.ledger <= :toLedger', {
+        toLedger: params.toLedger,
+      });
+    }
+
+    const total = await query.getCount();
+    const data = await query
+      .orderBy('event_log.ledger', 'DESC')
+      .addOrderBy('event_log.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    return { data, total };
+  }
+
+  async queryEventsFromLedger(
+    startLedger: number,
+    endLedger?: number,
+    limit?: number,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.fetchNormalizedEventsRange(
+      startLedger,
+      endLedger,
+      limit,
+    );
+
+    return {
+      startLedger,
+      endLedger: endLedger ?? null,
+      latestLedger: response.latestLedger,
+      oldestLedger: response.oldestLedger,
+      cursor: response.cursor,
+      events: response.events.map((event) => ({ ...event })),
+    };
+  }
+
+  async detectLedgerGaps(
+    startLedger: number,
+    endLedger?: number,
+    limit?: number,
+  ): Promise<Record<string, unknown>> {
+    const response = await this.fetchNormalizedEventsRange(
+      startLedger,
+      endLedger,
+      limit,
+    );
+    const eventIds = response.events.map((event) => event.id);
+    const existingLogs = eventIds.length
+      ? await this.eventLogRepository.find({
+          where: { eventId: In(eventIds) },
+        })
+      : [];
+    const loggedEventIds = new Set(existingLogs.map((log) => log.eventId));
+    const failedEventIds = new Set(
+      existingLogs
+        .filter((log) => log.status === ContractEventStatus.FAILED)
+        .map((log) => log.eventId),
+    );
+
+    const missingEvents = response.events.filter(
+      (event) => !loggedEventIds.has(event.id),
+    );
+    const missingLedgers = Array.from(
+      new Set([
+        ...missingEvents.map((event) => event.ledger),
+        ...existingLogs
+          .filter((log) => log.status === ContractEventStatus.FAILED)
+          .map((log) => log.ledger),
+      ]),
+    ).sort((left, right) => left - right);
+
+    return {
+      startLedger,
+      endLedger: endLedger ?? null,
+      latestLedger: response.latestLedger,
+      oldestLedger: response.oldestLedger,
+      missingLedgers,
+      missingEventIds: missingEvents.map((event) => event.id),
+      failedEventIds: Array.from(failedEventIds),
+      examinedEvents: response.events.length,
+    };
+  }
+
+  async replayEventsFromLedger(params: {
+    startLedger: number;
+    endLedger?: number;
+    limit?: number;
+    updateCheckpoint?: boolean;
+  }): Promise<Record<string, unknown>> {
+    const response = await this.fetchNormalizedEventsRange(
+      params.startLedger,
+      params.endLedger,
+      params.limit,
+    );
+
+    let processed = 0;
+    let skipped = 0;
+    let failed = 0;
+    const failures: Array<{ eventId: string; error: string }> = [];
+
+    for (const event of response.events) {
+      try {
+        const outcome = await this.processEventWithRetry(event);
+        if (outcome === 'processed') {
+          processed += 1;
+        } else {
+          skipped += 1;
+        }
+      } catch (error) {
+        failed += 1;
+        failures.push({
+          eventId: event.id,
+          error: this.formatError(error),
+        });
+      }
+    }
+
+    if (params.updateCheckpoint && response.events.length > 0) {
+      const replayLastLedger = response.events[response.events.length - 1].ledger;
+      this.cursor = null;
+      this.lastLedger = Math.max(this.lastLedger, replayLastLedger);
+      await this.updateCheckpoint({
+        cursor: null,
+        lastLedger: this.lastLedger,
+        lastPolledAt: new Date(),
+        lastError:
+          failed > 0
+            ? `Replay completed with ${failed} failure(s)`
+            : null,
+      });
+    }
+
+    return {
+      startLedger: params.startLedger,
+      endLedger: params.endLedger ?? null,
+      processed,
+      skipped,
+      failed,
+      failures,
+      replayedEvents: response.events.length,
+      latestLedger: response.latestLedger,
+      oldestLedger: response.oldestLedger,
+    };
+  }
+
+  async resetCheckpoint(params: {
+    startLedger?: number;
+    toLatest?: boolean;
+  }): Promise<ContractEventCheckpoint> {
+    if (params.toLatest) {
+      await this.resetCheckpointToLatestLedger();
+      return this.ensureCheckpoint();
+    }
+
+    const targetLedger = Math.max(
+      1,
+      params.startLedger ?? this.configuredStartLedger ?? 1,
+    );
+    this.cursor = null;
+    this.lastLedger = targetLedger;
+    await this.updateCheckpoint({
+      cursor: null,
+      lastLedger: targetLedger,
+      lastPolledAt: new Date(),
+      lastError: null,
+    });
+
+    return this.ensureCheckpoint();
   }
 
   private scheduleNextPoll(delayMs: number): void {
@@ -1294,6 +1490,84 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
       filters,
       startLedger: Math.max(1, this.lastLedger),
       limit: this.pageLimit,
+    };
+  }
+
+  private async fetchNormalizedEventsRange(
+    startLedger: number,
+    endLedger?: number,
+    limit?: number,
+  ): Promise<{
+    events: NormalizedContractEvent[];
+    cursor: string | null;
+    latestLedger: number;
+    oldestLedger: number;
+  }> {
+    if (!this.server || !this.contractId) {
+      throw new ServiceUnavailableException(
+        'Soroban event listener is not configured',
+      );
+    }
+
+    const targetLimit = Math.max(1, Math.min(limit ?? this.pageLimit, 1000));
+    const filters: rpc.Api.EventFilter[] = [
+      {
+        type: 'contract',
+        contractIds: [this.contractId],
+      },
+    ];
+
+    const events: NormalizedContractEvent[] = [];
+    let latestLedger = 0;
+    let oldestLedger = 0;
+    let cursor: string | null = null;
+    let request: rpc.Api.GetEventsRequest = {
+      filters,
+      startLedger: Math.max(1, startLedger),
+      endLedger,
+      limit: Math.min(this.pageLimit, targetLimit),
+    };
+
+    while (events.length < targetLimit) {
+      const response = await this.server.getEvents(request);
+      latestLedger = response.latestLedger;
+      oldestLedger = response.oldestLedger;
+      cursor = response.cursor;
+
+      if (response.events.length === 0) {
+        break;
+      }
+
+      const normalizedEvents = response.events
+        .map((event) => this.normalizeEvent(event, response.cursor))
+        .filter((event) =>
+          endLedger !== undefined ? event.ledger <= endLedger : true,
+        );
+
+      events.push(...normalizedEvents);
+
+      const reachedEndLedger =
+        endLedger !== undefined &&
+        response.events.some((event) => event.ledger >= endLedger);
+      if (
+        reachedEndLedger ||
+        response.events.length < Math.min(this.pageLimit, targetLimit)
+      ) {
+        break;
+      }
+
+      request = {
+        filters,
+        cursor: response.cursor,
+        limit: Math.min(this.pageLimit, targetLimit - events.length),
+      };
+    }
+
+    return {
+      events: events.slice(0, targetLimit),
+      cursor,
+      latestLedger,
+      oldestLedger,
     };
   }
 

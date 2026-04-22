@@ -36,6 +36,25 @@ export default () => ({
     soroban: {
       contractId: process.env.SOROBAN_CONTRACT_ID,
       adminSecret: process.env.SOROBAN_ADMIN_SECRET,
+      settlementContractId: process.env.SOROBAN_SETTLEMENT_CONTRACT_ID,
+      spinRewardsContractId: process.env.SOROBAN_SPIN_REWARDS_CONTRACT_ID,
+      nftContractId: process.env.SOROBAN_NFT_CONTRACT_ID,
+      nftTargetContractId: process.env.SOROBAN_NFT_TARGET_CONTRACT_ID,
+      settlementFunctionAlias: process.env.SOROBAN_SETTLEMENT_FUNCTION,
+      rewardFunctionAlias: process.env.SOROBAN_REWARD_FUNCTION,
+      nftFunctionAlias: process.env.SOROBAN_NFT_FUNCTION,
+      txTimeoutSeconds: parseInt(
+        process.env.SOROBAN_TX_TIMEOUT_SECONDS || '60',
+        10,
+      ),
+      txPollIntervalMs: parseInt(
+        process.env.SOROBAN_TX_POLL_INTERVAL_MS || '1500',
+        10,
+      ),
+      txPollAttempts: parseInt(
+        process.env.SOROBAN_TX_POLL_ATTEMPTS || '20',
+        10,
+      ),
     },
     events: {
       enabled: process.env.CONTRACT_EVENTS_ENABLED !== 'false',

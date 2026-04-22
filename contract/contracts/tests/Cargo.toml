@@ -1,0 +1,40 @@
+[package]
+name = "tests"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+soroban-sdk = "23"
+
+[dependencies.staking]
+path = "../staking"
+
+[dependencies.betting]
+path = "../betting"
+
+[dependencies.settlement]
+path = "../settlement"
+
+[dependencies.balance_ledger]
+path = "../balance_ledger"
+
+[dependencies.treasury]
+path = "../treasury"
+
+[dependencies.nft_player_cards]
+path = "../nft_player_cards"
+
+[dependencies.spin_rewards]
+path = "../spin_rewards"
+
+[dependencies.team_governance]
+path = "../team_governance"
+
+[dependencies.common]
+path = "../common"
+
+[dev-dependencies]
+soroban-sdk = { version = "23", features = ["testutils"] }

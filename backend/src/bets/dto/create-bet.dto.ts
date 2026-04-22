@@ -14,8 +14,7 @@ export class CreateBetDto {
     description: 'UUID of the match to bet on',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @IsUUID()
-  matchId: string;
+  
 
   @ApiProperty({
     description: 'Amount to stake on the bet (must be greater than 0)',
@@ -47,4 +46,8 @@ export class CreateBetDto {
   @IsOptional()
   @IsUUID()
   voucherId?: string;
+
+    matchId: string;
+  stakeAmount: number;
+  predictedOutcome: MatchOutcome;
 }

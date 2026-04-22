@@ -88,6 +88,52 @@ class EnvironmentVariables {
   SOROBAN_ADMIN_SECRET: string;
 
   @IsOptional()
+  @IsString()
+  SOROBAN_SETTLEMENT_CONTRACT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_SPIN_REWARDS_CONTRACT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_NFT_CONTRACT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_NFT_TARGET_CONTRACT_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_SETTLEMENT_FUNCTION?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_REWARD_FUNCTION?: string;
+
+  @IsOptional()
+  @IsString()
+  SOROBAN_NFT_FUNCTION?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(600)
+  SOROBAN_TX_TIMEOUT_SECONDS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(100)
+  @Max(60000)
+  SOROBAN_TX_POLL_INTERVAL_MS?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(120)
+  SOROBAN_TX_POLL_ATTEMPTS?: number;
+
+  @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   CONTRACT_EVENTS_ENABLED?: boolean;

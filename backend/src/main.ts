@@ -8,6 +8,10 @@ import { AppLogger } from './common/logger/logger.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
+// Idempotency layer
+import { IdempotentMiddleware } from './common/middleware/idempotent.middleware';
+import { ProcessedEvent } from './common/entities/processed-event.entity';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -43,6 +47,11 @@ async function bootstrap() {
       },
     }),
   );
+
+  // Register IdempotentMiddleware for external event routes
+  app.use('/api/v1/webhooks', app.get(IdempotentMiddleware));
+  app.use('/api/v1/spin', app.get(IdempotentMiddleware));
+  app.use('/api/v1/contracts/events', app.get(IdempotentMiddleware));
 
   // Swagger Documentation Setup
   const config = new DocumentBuilder()

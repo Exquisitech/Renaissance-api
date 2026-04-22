@@ -13,14 +13,25 @@ export enum BetStatus {
 }
 
 @Entity('bets')
-@Index(['userId', 'matchId'], { unique: true })
+
+// ❌ REMOVED unique constraint
+@Index(['userId', 'matchId'])
 @Index(['userId'])
 @Index(['matchId'])
 @Index(['status'])
 @Index(['userId', 'status'])
 @Index(['matchId', 'status'])
 @Index(['settledAt'])
+@Index(['reference'], { unique: true }) // unique bet tracking
 export class Bet extends BaseEntity {
+
+  @ApiProperty({
+    description: 'Unique bet reference',
+    example: 'BET-9f8a7c6d',
+  })
+  @Column({ unique: true })
+  reference: string;
+
   @ApiProperty({
     description: 'ID of the user who placed the bet',
     example: '456e7890-e12b-34d5-a678-901234567890',
@@ -32,7 +43,7 @@ export class Bet extends BaseEntity {
     description: 'ID of the match the bet was placed on',
     example: '789e0123-e45b-67d8-a901-234567890123',
   })
-  @Column({ name: 'match_id', nullable: true })
+  @Column({ name: 'match_id', nullable: false })
   matchId: string;
 
   @ApiProperty({
@@ -58,15 +69,13 @@ export class Bet extends BaseEntity {
   @ApiProperty({
     description: 'Odds at the time the bet was placed',
     example: 2.5,
-    type: Number,
   })
-  @Column({ type: 'decimal', precision: 5, scale: 2 })
+  @Column({ type: 'decimal', precision: 8, scale: 3 })
   odds: number;
 
   @ApiProperty({
-    description: 'Potential payout if the bet wins (stake * odds)',
+    description: 'Potential payout (stake * odds)',
     example: 251.25,
-    type: Number,
   })
   @Column({
     name: 'potential_payout',
@@ -77,9 +86,8 @@ export class Bet extends BaseEntity {
   potentialPayout: number;
 
   @ApiProperty({
-    description: 'Current status of the bet',
+    description: 'Current bet status',
     enum: BetStatus,
-    example: BetStatus.PENDING,
     default: BetStatus.PENDING,
   })
   @Column({
@@ -90,33 +98,32 @@ export class Bet extends BaseEntity {
   status: BetStatus;
 
   @ApiPropertyOptional({
-    description: 'Timestamp when the bet was settled',
-    example: '2024-01-20T20:00:00Z',
-    nullable: true,
+    description: 'Group ID (for multi-bet strategies / future parlays)',
+    example: 'GROUP-abc123',
+  })
+  @Column({ name: 'group_id', nullable: true })
+  groupId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Timestamp when bet was settled',
   })
   @Column({ name: 'settled_at', nullable: true })
-  settledAt: Date;
+  settledAt?: Date;
 
   @ApiPropertyOptional({
-    description: 'Additional metadata for the bet',
-    example: { source: 'mobile_app', promocode: 'WELCOME10' },
-    nullable: true,
+    description: 'Settlement result metadata',
   })
   @Column({ type: 'json', nullable: true })
-  metadata: Record<string, any>;
+  metadata?: Record<string, any>;
 
-  @ApiPropertyOptional({
-    description: 'User who placed the bet',
-    type: () => User,
-  })
+  /*
+   * RELATIONS
+   */
+
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @ApiPropertyOptional({
-    description: 'Match the bet was placed on',
-    type: () => Match,
-  })
   @ManyToOne(() => Match, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'match_id' })
   match: Match;

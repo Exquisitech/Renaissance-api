@@ -12,13 +12,20 @@ import { LeaderboardController } from './leaderboard.controller';
 import { LeaderboardQueryService } from './leaderboard-query.service';
 import { LeaderboardAggregationService } from './leaderboard-aggregation.service';
 import { LeaderboardSyncService } from './leaderboard-sync.service';
-// import { LeaderboardGateway } from './leaderboard.gateway';
+import { LeaderboardGateway } from './leaderboard.gateway';
+import { BetPlacedEventHandler } from './listeners/bet-placed.listener';
+import { BetSettledEventHandler } from './listeners/bet-settled.listener';
 import { SpinSettledEventHandler } from './listeners/spin-settled.listener';
+import { StakeCreditedEventHandler } from './listeners/stake-credited.listener';
+import { StakeDebitedEventHandler } from './listeners/stake-debited.listener';
 import { SeasonService } from './services/season.service';
 import { SeasonalLeaderboardService } from './services/seasonal-leaderboard.service';
 import { SeasonResetService } from './services/season-reset.service';
 import { SeasonController } from './controllers/season.controller';
 import { BetsModule } from '../bets/bets.module';
+import { RankingService } from './services/ranking.service';
+import { RankingController } from './controllers/ranking.controller';
+import { Bet } from '../bets/entities/bet.entity';
 
 @Module({
   imports: [
@@ -29,28 +36,34 @@ import { BetsModule } from '../bets/bets.module';
       User,
       Season,
       SeasonalLeaderboard,
+      Bet,
     ]),
     CqrsModule,
     forwardRef(() => BetsModule),
   ],
-  controllers: [LeaderboardController, SeasonController],
+  controllers: [LeaderboardController, SeasonController, RankingController],
   providers: [
     LeaderboardService,
     LeaderboardQueryService,
-    SpinSettledEventHandler,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    // LeaderboardGateway,
+    LeaderboardGateway,
+    BetPlacedEventHandler,
+    BetSettledEventHandler,
+    SpinSettledEventHandler,
+    StakeCreditedEventHandler,
+    StakeDebitedEventHandler,
     SeasonService,
     SeasonalLeaderboardService,
     SeasonResetService,
+    RankingService,
   ],
   exports: [
     LeaderboardService,
     LeaderboardQueryService,
     LeaderboardAggregationService,
     LeaderboardSyncService,
-    // LeaderboardGateway,
+    LeaderboardGateway,
     SeasonService,
     SeasonalLeaderboardService,
     SeasonResetService,

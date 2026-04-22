@@ -16,6 +16,7 @@ import { FreeBetVoucher } from '../free-bet-vouchers/entities/free-bet-voucher.e
 import { Spin } from '../spin/entities/spin.entity';
 import { RateLimitModule } from '../rate-limit/rate-limit.module';
 import { AdminOverrideService } from './admin-override.service';
+import { AdminAnalyticsModule } from './analytics/admin-analytics.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { AdminOverrideService } from './admin-override.service';
       Spin,
     ]),
     RateLimitModule,
+    AdminAnalyticsModule,
   ],
   controllers: [AdminController, EmergencyController],
   providers: [AdminService, AdminOverrideService, EmergencyPauseService],

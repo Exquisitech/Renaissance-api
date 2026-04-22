@@ -5,6 +5,7 @@ import { Comment } from '../../comments/entities/comment.entity';
 import { Bet } from '../../bets/entities/bet.entity';
 import { Transaction } from '../../transactions/entities/transaction.entity';
 import { Prediction } from '../../predictions/entities/prediction.entity';
+import { WalletConnection } from '../../wallet/entities/wallet-connection.entity';
 
 export enum UserRole {
   // Standard user roles
@@ -103,4 +104,9 @@ export class User extends BaseEntity {
     cascade: true,
   })
   predictions: Prediction[];
+
+  @OneToMany(() => WalletConnection, (walletConnection) => walletConnection.user, {
+    cascade: true,
+  })
+  walletConnections: WalletConnection[];
 }

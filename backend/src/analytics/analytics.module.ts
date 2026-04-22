@@ -1,7 +1,18 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalyticsService } from './providers/analytics.service';
+import { AnalyticsEventService } from './providers/analytics-event.service';
+import { AnalyticsTrackingService } from './providers/analytics-tracking.service';
 import { AnalyticsController } from './analytics.controller';
+import { AnalyticsEvent } from './entities/analytics-event.entity';
+import { Bet } from '../bets/entities/bet.entity';
+import { Transaction } from '../transactions/entities/transaction.entity';
+import { Spin } from '../spin/entities/spin.entity';
+import { User } from '../users/entities/user.entity';
+import { Match } from '../matches/entities/match.entity';
+import { NFTListing } from '../nft/entities/nft-listing.entity';
+import { Prediction } from '../predictions/entities/prediction.entity';
 
 @Module({
   imports: [
@@ -9,8 +20,27 @@ import { AnalyticsController } from './analytics.controller';
       ttl: 60, // 60 seconds cache
       max: 100,
     }),
+    TypeOrmModule.forFeature([
+      AnalyticsEvent,
+      Bet,
+      Transaction,
+      Spin,
+      User,
+      Match,
+      NFTListing,
+      Prediction,
+    ]),
   ],
-  providers: [AnalyticsService],
+  providers: [
+    AnalyticsService,
+    AnalyticsEventService,
+    AnalyticsTrackingService,
+  ],
   controllers: [AnalyticsController],
+  exports: [
+    AnalyticsService,
+    AnalyticsEventService,
+    AnalyticsTrackingService,
+  ],
 })
 export class AnalyticsModule {}

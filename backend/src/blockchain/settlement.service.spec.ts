@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { SettlementService } from './settlement.service';
 import { SorobanService } from './soroban.service';
 import { Settlement, SettlementStatus } from './entities/settlement.entity';
+import { rpc } from '@stellar/stellar-sdk';
 
 describe('SettlementService', () => {
   let service: SettlementService;
@@ -22,7 +23,8 @@ describe('SettlementService', () => {
     };
 
     const sorobanMock = {
-      invokeContract: jest.fn().mockResolvedValue('mock_tx_hash'),
+        invokeContract: jest.fn().mockResolvedValue('mock_tx_hash'),
+        getTransactionStatus: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -82,5 +84,36 @@ describe('SettlementService', () => {
     const result = await service.settleBet('bet123', 'WIN', 100);
     expect(result.status).toBe(SettlementStatus.PENDING);
     expect(sorobanService.invokeContract).not.toHaveBeenCalled();
+  });
+
+  it('should mark pending settlements as confirmed when on-chain tx succeeds', async () => {
+      repoMock.find.mockResolvedValue([
+        { id: 'settlement-1', txHash: 'hash-1', status: SettlementStatus.PENDING },
+      ]);
+      (sorobanService.getTransactionStatus as jest.Mock).mockResolvedValue({
+        status: rpc.Api.GetTransactionStatus.SUCCESS,
+      });
+
+      await service.reconcile();
+
+      expect(sorobanService.getTransactionStatus).toHaveBeenCalledWith('hash-1');
+      expect(repoMock.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: SettlementStatus.CONFIRMED }),
+      );
+  });
+
+  it('should mark pending settlements as failed when on-chain tx fails', async () => {
+      repoMock.find.mockResolvedValue([
+        { id: 'settlement-1', txHash: 'hash-1', status: SettlementStatus.PENDING },
+      ]);
+      (sorobanService.getTransactionStatus as jest.Mock).mockResolvedValue({
+        status: rpc.Api.GetTransactionStatus.FAILED,
+      });
+
+      await service.reconcile();
+
+      expect(repoMock.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: SettlementStatus.FAILED }),
+      );
   });
 });

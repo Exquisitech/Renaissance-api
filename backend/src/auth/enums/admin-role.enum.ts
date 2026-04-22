@@ -3,6 +3,8 @@ export enum AdminRole {
   FINANCIAL_ADMIN = 'financial_admin',
   SUPPORT_ADMIN = 'support_admin',
   RISK_ADMIN = 'risk_admin',
+  ANALYST = 'analyst',
+  SUPPORT = 'support',
 }
 
 export enum Permission {

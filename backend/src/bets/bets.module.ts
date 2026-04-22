@@ -13,6 +13,7 @@ import { RateLimitModule } from '../rate-limit/rate-limit.module';
 
 @Module({
   imports: [
+    CqrsModule,
     TypeOrmModule.forFeature([Bet, Match]),
     forwardRef(() => LeaderboardModule),
     CqrsModule,

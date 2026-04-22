@@ -36,4 +36,28 @@ export class SolvencyScheduler {
       // TODO: Integrate with alerting/notification system
     }
   }
+
+  @Cron(CronExpression.EVERY_DAY_AT_2AM)
+  async handleDailyProofGeneration() {
+    this.logger.log('Generating daily proof of reserves...');
+    try {
+      const proof = await this.solvencyService.generateProofOfReserves(true);
+      this.logger.log(
+        `Daily proof generated: ${proof.id} with root ${proof.merkleRoot}`,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to generate daily proof: ${error.message}`);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_WEEK_ON_SUNDAY_AT_3AM)
+  async handleWeeklyArchival() {
+    this.logger.log('Archiving old solvency proofs...');
+    try {
+      const archived = await this.solvencyService.archiveOldProofs(90);
+      this.logger.log(`Archived ${archived} old proofs`);
+    } catch (error) {
+      this.logger.error(`Failed to archive proofs: ${error.message}`);
+    }
+  }
 }

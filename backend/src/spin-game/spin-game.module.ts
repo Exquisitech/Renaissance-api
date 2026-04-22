@@ -8,6 +8,7 @@ import { SpinGameRepository } from './repositories/spin-game.repository';
 import { SpinGame, UserSpinStats, FreeBetReward, NFTReward } from './entities';
 import { RateLimitModule } from '../rate-limit/rate-limit.module';
 import { FreeBetVouchersModule } from '../free-bet-vouchers/free-bet-vouchers.module';
+import { JackpotModule } from './jackpot.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FreeBetVouchersModule } from '../free-bet-vouchers/free-bet-vouchers.mo
     JwtModule,
     RateLimitModule,
     FreeBetVouchersModule,
+    JackpotModule,
   ],
   controllers: [SpinGameController],
   providers: [SpinGameService, SpinGameRepository],
