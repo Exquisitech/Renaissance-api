@@ -76,12 +76,20 @@ export class AnalyticsController {
 
   @Get('events')
   async getEvents(@Query() query: AnalyticsQueryDto) {
-    return this.analyticsEventService.getEvents(query);
+    return this.analyticsEventService.getEvents({
+      ...query,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    });
   }
 
   @Get('events/usage-patterns')
   async getUsagePatterns(@Query() query: AnalyticsQueryDto) {
-    return this.analyticsEventService.getUsagePatterns(query);
+    return this.analyticsEventService.getUsagePatterns({
+      ...query,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    });
   }
 
   @Get('users/:userId/behavior')

@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { NotificationDeliveryService } from './notification-delivery.service';
+import { NotificationEntity } from './entities/notification.entity';
 
 /**
  * Notification types for different user events
@@ -118,11 +120,17 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private notificationQueue: Map<string, NotificationQueueItem> = new Map();
   private connectedUsers: Map<string, Set<string>> = new Map(); // userId -> Set of socketIds
+  private realtimeDispatcher?: (
+    userId: string,
+    notification: BaseNotification,
+  ) => Promise<void>;
 
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    private readonly dataSource: DataSource,
+    @InjectRepository(NotificationEntity)
+    private readonly notificationRepository: Repository<NotificationEntity>,
+    private readonly notificationDeliveryService: NotificationDeliveryService,
   ) {}
 
   /**
@@ -343,11 +351,12 @@ export class NotificationsService {
       return;
     }
 
-    // This would be handled by the NotificationsGateway
-    // For now, we'll just log the intent
-    this.logger.debug(
-      `Sending notification to ${userSockets.size} connected clients for user ${userId}`,
-    );
+    if (this.realtimeDispatcher) {
+      await this.realtimeDispatcher(userId, notification);
+      return;
+    }
+
+    this.logger.debug(`No realtime dispatcher configured for user ${userId}`);
   }
 
   /**
@@ -356,9 +365,18 @@ export class NotificationsService {
   private async storeNotification(
     notification: BaseNotification,
   ): Promise<void> {
-    // This would store in a notifications table
-    // For now, we'll just log the intent
-    this.logger.debug(`Storing notification ${notification.id} in database`);
+    const entity = this.notificationRepository.create({
+      id: notification.id,
+      userId: notification.userId,
+      type: notification.type,
+      title: notification.title,
+      message: notification.message,
+      data: notification.data,
+      read: notification.read,
+      priority: notification.priority,
+      timestamp: notification.timestamp,
+    });
+    await this.notificationRepository.save(entity);
   }
 
   /**
@@ -367,9 +385,19 @@ export class NotificationsService {
   private async sendExternalNotifications(
     notification: BaseNotification,
   ): Promise<void> {
-    // This would integrate with email and push notification services
-    // For now, we'll just log the intent
-    this.logger.debug(`Sending external notifications for ${notification.id}`);
+    if (notification.userId === 'broadcast') {
+      return;
+    }
+
+    const preferences = await this.getUserNotificationPreferences(notification.userId);
+    const user = await this.userRepository.findOne({ where: { id: notification.userId } });
+
+    if (!user) {
+      this.logger.warn(`Skipping external delivery for unknown user ${notification.userId}`);
+      return;
+    }
+
+    await this.notificationDeliveryService.deliver(notification, preferences, user);
   }
 
   /**
@@ -397,20 +425,21 @@ export class NotificationsService {
   async getUserNotificationPreferences(
     userId: string,
   ): Promise<NotificationPreferences> {
-    // This would fetch from database
-    // For now, return default preferences
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const saved = user?.metadata?.notificationPreferences ?? {};
+
     return {
       userId,
-      betOutcomes: true,
-      spinRewards: true,
-      leaderboardChanges: true,
-      stakeRewards: true,
-      nftMints: true,
-      accountUpdates: true,
-      systemAnnouncements: true,
-      emailNotifications: true,
-      pushNotifications: true,
-      inAppNotifications: true,
+      betOutcomes: saved.betOutcomes ?? true,
+      spinRewards: saved.spinRewards ?? true,
+      leaderboardChanges: saved.leaderboardChanges ?? true,
+      stakeRewards: saved.stakeRewards ?? true,
+      nftMints: saved.nftMints ?? true,
+      accountUpdates: saved.accountUpdates ?? true,
+      systemAnnouncements: saved.systemAnnouncements ?? true,
+      emailNotifications: saved.emailNotifications ?? true,
+      pushNotifications: saved.pushNotifications ?? true,
+      inAppNotifications: saved.inAppNotifications ?? true,
     };
   }
 
@@ -429,7 +458,15 @@ export class NotificationsService {
       userId,
     };
 
-    // This would update in database
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (user) {
+      user.metadata = {
+        ...(user.metadata ?? {}),
+        notificationPreferences: updatedPreferences,
+      };
+      await this.userRepository.save(user);
+    }
+
     this.logger.log(`Updated notification preferences for user ${userId}`);
 
     return updatedPreferences;
@@ -487,6 +524,12 @@ export class NotificationsService {
       }
     }
     this.logger.debug(`User ${userId} disconnected from socket ${socketId}`);
+  }
+
+  registerRealtimeDispatcher(
+    dispatcher: (userId: string, notification: BaseNotification) => Promise<void>,
+  ): void {
+    this.realtimeDispatcher = dispatcher;
   }
 
   /**
@@ -572,9 +615,29 @@ export class NotificationsService {
     offset: number = 0,
     unreadOnly: boolean = false,
   ): Promise<BaseNotification[]> {
-    // This would fetch from database
-    // For now, return empty array
-    return [];
+    const qb = this.notificationRepository
+      .createQueryBuilder('n')
+      .where('n.userId = :userId', { userId })
+      .orderBy('n.createdAt', 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    if (unreadOnly) {
+      qb.andWhere('n.read = :read', { read: false });
+    }
+
+    const rows = await qb.getMany();
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type,
+      userId: row.userId,
+      title: row.title,
+      message: row.message,
+      data: row.data,
+      timestamp: row.timestamp,
+      read: row.read,
+      priority: row.priority,
+    }));
   }
 
   /**
@@ -584,7 +647,10 @@ export class NotificationsService {
     userId: string,
     notificationId: string,
   ): Promise<void> {
-    // This would update in database
+    await this.notificationRepository.update(
+      { id: notificationId, userId },
+      { read: true },
+    );
     this.logger.log(
       `Marked notification ${notificationId} as read for user ${userId}`,
     );
@@ -594,7 +660,7 @@ export class NotificationsService {
    * Mark all notifications as read for user
    */
   async markAllNotificationsAsRead(userId: string): Promise<void> {
-    // This would update in database
+    await this.notificationRepository.update({ userId, read: false }, { read: true });
     this.logger.log(`Marked all notifications as read for user ${userId}`);
   }
 
@@ -605,7 +671,7 @@ export class NotificationsService {
     userId: string,
     notificationId: string,
   ): Promise<void> {
-    // This would delete from database
+    await this.notificationRepository.delete({ id: notificationId, userId });
     this.logger.log(
       `Deleted notification ${notificationId} for user ${userId}`,
     );
@@ -615,8 +681,8 @@ export class NotificationsService {
    * Get unread count for user
    */
   async getUnreadCount(userId: string): Promise<number> {
-    // This would count from database
-    // For now, return 0
-    return 0;
+    return this.notificationRepository.count({
+      where: { userId, read: false },
+    });
   }
 }

@@ -50,6 +50,9 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { TreasuryModule } from './treasury/treasury.module';
 import { StakingModule } from './stake/staking.module';
 import { PlayerModule } from './player/player.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { FraudModule } from './fraud/fraud.module';
 
 @Module({
   imports: [
@@ -117,6 +120,9 @@ import { PlayerModule } from './player/player.module';
     TreasuryModule,
     StakingModule,
     PlayerModule,
+    AnalyticsModule,
+    NotificationsModule,
+    FraudModule,
   ],
   providers: [
     {

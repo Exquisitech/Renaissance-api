@@ -69,6 +69,7 @@
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "winston": "^3.19.0",
     "ws": "^8.13.0"
   },

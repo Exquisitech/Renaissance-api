@@ -1,6 +1,9 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
-import { AnalyticsEventService, TrackEventDto } from '../analytics/providers/analytics-event.service';
-import { AnalyticsEventType, AnalyticsEventCategory } from '../analytics/entities/analytics-event.entity';
+import { AnalyticsEventService, TrackEventDto } from './analytics-event.service';
+import {
+  AnalyticsEventType,
+  AnalyticsEventCategory,
+} from '../entities/analytics-event.entity';
 
 @Injectable()
 export class AnalyticsTrackingService {
