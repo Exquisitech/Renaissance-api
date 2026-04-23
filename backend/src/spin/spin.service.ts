@@ -11,7 +11,7 @@ import { Spin, SpinStatus, SpinOutcome } from './entities/spin.entity';
 import { CreateSpinDto } from './dto/create-spin.dto';
 import { SpinResultDto } from './dto/spin-result.dto';
 // @ts-ignore - wallet module resolution issue
-import { WalletService } from 'src/wallet/services/wallet.service';
+import { WalletService } from '../wallet/wallet.service';
 import { SorobanService } from '../blockchain/soroban.service';
 import { EventBus } from '@nestjs/cqrs';
 import { SpinSettledEvent } from '../leaderboard/domain/events/spin-settled.event';

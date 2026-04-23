@@ -1,11 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryRunner, Repository } from 'typeorm';
 import { WalletConnection } from '../entities/wallet-connection.entity';
 import { BalanceTransaction, TransactionType, TransactionSource } from '../entities/balance-transaction.entity';
+import { TransactionType, TransactionType } from 'src/transactions/entities/transaction.entity';
 
 @Injectable()
 export class WalletService {
+  updateUserBalanceWithQueryRunner(queryRunner: QueryRunner, userId: string, arg2: number, BET_WINNING: TransactionType, id: string, p0: { spinPayout: number; sessionId: string; rewardChannel: "XLM" | "NFT"; }, isWithdrawable: boolean, BET_PLACEMENT: TransactionType, undefined: undefined, arg5: { spinStake: number; sessionId: string; }) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectRepository(WalletConnection)
     private walletRepo: Repository<WalletConnection>,
@@ -40,27 +44,5 @@ export class WalletService {
       type: TransactionType.CREDIT,
       source: type as TransactionSource,
     });
-  }
-
-  async updateUserBalanceWithQueryRunner(
-    userId: string,
-    amount: number,
-    type: string,
-    queryRunner?: any,
-    referenceId?: string,
-    metadata?: any
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      await this.balanceTxRepo.save({
-        userId,
-        amount,
-        type: type === 'credit' ? TransactionType.CREDIT : TransactionType.DEBIT,
-        source: type as TransactionSource,
-        referenceId,
-      });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error?.message };
-    }
   }
 }
