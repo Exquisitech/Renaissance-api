@@ -29,8 +29,8 @@ export class FreeBetVoucherService {
   ) {}
 
   /**
-   * Create a free bet voucher for a user (e.g. from spin rewards).
-   * Vouchers are non-withdrawable and can only be applied to betting.
+   * Create a free bet voucher for a user.
+   * Works independently of spin and can carry optional source metadata.
    */
   async createVoucher(
     createVoucherDto: CreateFreeBetVoucherDto,
@@ -83,7 +83,11 @@ export class FreeBetVoucherService {
       used: false,
       metadata: {
         ...(createVoucherDto.metadata ?? {}),
+        sourceType: createVoucherDto.sourceType ?? 'MANUAL',
+        sourceReferenceId: createVoucherDto.sourceReferenceId,
         maxActiveVouchersPerUser: createVoucherDto.maxActiveVouchersPerUser,
+        usageCount: 0,
+        usageHistory: [],
       },
     });
     return voucherRepo.save(voucher);
@@ -98,6 +102,8 @@ export class FreeBetVoucherService {
     limit = 10,
     includeUsed = false,
   ): Promise<PaginatedVouchers> {
+    await this.markExpiredVouchersForUser(userId);
+
     const skip = (page - 1) * limit;
     const now = new Date();
 
@@ -152,6 +158,8 @@ export class FreeBetVoucherService {
    * Used when placing a bet to choose a voucher.
    */
   async getAvailableVouchers(userId: string): Promise<FreeBetVoucher[]> {
+    await this.markExpiredVouchersForUser(userId);
+
     const now = new Date();
     return this.voucherRepository
       .createQueryBuilder('v')
@@ -177,15 +185,9 @@ export class FreeBetVoucherService {
     if (!voucher) {
       throw new NotFoundException('Free bet voucher not found');
     }
-    if (voucher.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this voucher');
-    }
-    if (voucher.used) {
-      throw new ConflictException('Voucher has already been used');
-    }
-    if (new Date() > voucher.expiresAt) {
-      throw new BadRequestException('Voucher has expired');
-    }
+
+    this.assertVoucherUsable(voucher, userId);
+
     return voucher;
   }
 
@@ -276,19 +278,17 @@ export class FreeBetVoucherService {
       if (!voucher) {
         throw new NotFoundException('Free bet voucher not found');
       }
-      if (voucher.userId !== userId) {
-        throw new ForbiddenException('You do not have access to this voucher');
-      }
-      if (voucher.used) {
-        throw new ConflictException('Voucher has already been used');
-      }
-      if (new Date() > voucher.expiresAt) {
-        throw new BadRequestException('Voucher has expired');
-      }
 
+      this.assertVoucherUsable(voucher, userId);
+
+      const usedAt = new Date();
       voucher.used = true;
-      voucher.usedAt = new Date();
+      voucher.usedAt = usedAt;
       voucher.usedForBetId = betId;
+      voucher.metadata = this.withUsageTracking(voucher.metadata, {
+        usedAt,
+        betId,
+      });
       const saved = await qr.manager.save(voucher);
       await qr.commitTransaction();
       return saved;
@@ -314,19 +314,17 @@ export class FreeBetVoucherService {
     if (!voucher) {
       throw new NotFoundException('Free bet voucher not found');
     }
-    if (voucher.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this voucher');
-    }
-    if (voucher.used) {
-      throw new ConflictException('Voucher has already been used');
-    }
-    if (new Date() > voucher.expiresAt) {
-      throw new BadRequestException('Voucher has expired');
-    }
 
+    this.assertVoucherUsable(voucher, userId);
+
+    const usedAt = new Date();
     voucher.used = true;
-    voucher.usedAt = new Date();
+    voucher.usedAt = usedAt;
     voucher.usedForBetId = betId;
+    voucher.metadata = this.withUsageTracking(voucher.metadata, {
+      usedAt,
+      betId,
+    });
     return manager.save(voucher);
   }
 
@@ -379,10 +377,18 @@ export class FreeBetVoucherService {
         'Voucher is linked to a different bet and cannot be restored',
       );
     }
+    if (this.isVoucherExpired(voucher)) {
+      throw new BadRequestException('Voucher has expired and cannot be restored');
+    }
 
     voucher.used = false;
     voucher.usedAt = undefined;
     voucher.usedForBetId = undefined;
+    voucher.metadata = {
+      ...(voucher.metadata ?? {}),
+      restoreCount: Number(voucher.metadata?.restoreCount ?? 0) + 1,
+      lastRestoredAt: new Date().toISOString(),
+    };
     return manager.save(voucher);
   }
 
@@ -397,8 +403,9 @@ export class FreeBetVoucherService {
     totalValue: number;
     activeValue: number;
   }> {
+    await this.markExpiredVouchersForUser(userId);
+
     const list = await this.voucherRepository.find({ where: { userId } });
-    const now = new Date();
     const stats = {
       totalVouchers: list.length,
       activeVouchers: 0,
@@ -413,7 +420,7 @@ export class FreeBetVoucherService {
       stats.totalValue += amt;
       if (v.used) {
         stats.usedVouchers++;
-      } else if (new Date(v.expiresAt) < now) {
+      } else if (this.isVoucherExpired(v)) {
         stats.expiredVouchers++;
       } else {
         stats.activeVouchers++;
@@ -421,5 +428,72 @@ export class FreeBetVoucherService {
       }
     }
     return stats;
+  }
+
+  private assertVoucherUsable(voucher: FreeBetVoucher, userId: string): void {
+    if (voucher.userId !== userId) {
+      throw new ForbiddenException('You do not have access to this voucher');
+    }
+    if (voucher.used) {
+      throw new ConflictException('Voucher has already been used');
+    }
+    if (this.isVoucherExpired(voucher)) {
+      throw new BadRequestException('Voucher has expired');
+    }
+  }
+
+  private isVoucherExpired(voucher: FreeBetVoucher): boolean {
+    return new Date() > new Date(voucher.expiresAt);
+  }
+
+  private withUsageTracking(
+    metadata: Record<string, any> | undefined,
+    usage: { usedAt: Date; betId: string },
+  ): Record<string, any> {
+    const current = metadata ?? {};
+    const currentHistory = Array.isArray(current.usageHistory)
+      ? current.usageHistory
+      : [];
+
+    return {
+      ...current,
+      usageCount: Number(current.usageCount ?? 0) + 1,
+      lastUsedAt: usage.usedAt.toISOString(),
+      lastUsedForBetId: usage.betId,
+      usageHistory: [
+        ...currentHistory,
+        {
+          usedAt: usage.usedAt.toISOString(),
+          betId: usage.betId,
+        },
+      ].slice(-20),
+    };
+  }
+
+  private async markExpiredVouchersForUser(userId: string): Promise<void> {
+    const now = new Date();
+    const vouchers = await this.voucherRepository
+      .createQueryBuilder('v')
+      .where('v.userId = :userId', { userId })
+      .andWhere('v.used = :used', { used: false })
+      .andWhere('v.expiresAt <= :now', { now })
+      .getMany();
+
+    if (vouchers.length === 0) {
+      return;
+    }
+
+    for (const voucher of vouchers) {
+      voucher.metadata = {
+        ...(voucher.metadata ?? {}),
+        status: 'EXPIRED',
+        expiredAt:
+          typeof voucher.metadata?.expiredAt === 'string'
+            ? voucher.metadata.expiredAt
+            : now.toISOString(),
+      };
+    }
+
+    await this.voucherRepository.save(vouchers);
   }
 }

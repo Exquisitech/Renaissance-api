@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppLogger } from './common/logger/logger.service';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { NotificationService } from './lib/notification-service';
 
 // Idempotency layer
 import { IdempotentMiddleware } from './common/middleware/idempotent.middleware';
@@ -16,6 +17,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const logger = app.get(AppLogger);
+
+  // Initialize email transporter
+  NotificationService.initializeEmailTransporter();
 
   // Global interceptors and filters
   app.useGlobalInterceptors(new LoggingInterceptor(logger));

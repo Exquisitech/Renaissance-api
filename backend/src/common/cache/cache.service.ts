@@ -26,9 +26,7 @@ export class CacheService implements OnModuleInit {
   private missCount = 0;
   private readonly MAX_CACHE_ENTRIES = 1000;
 
-  constructor(
-    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  ) {}
+  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cache) {}
 
   onModuleInit() {
     this.logger.log('CacheService initialized');
@@ -41,7 +39,7 @@ export class CacheService implements OnModuleInit {
   async get<T>(key: string): Promise<T | null> {
     try {
       const value = await this.cacheManager.get<T>(key);
-      
+
       if (value !== undefined && value !== null) {
         this.hitCount++;
         this.logger.debug(`Cache HIT: ${key}`);
@@ -60,11 +58,7 @@ export class CacheService implements OnModuleInit {
   /**
    * Set value in cache with TTL
    */
-  async set<T>(
-    key: string,
-    value: T,
-    ttl?: number,
-  ): Promise<void> {
+  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
       await this.cacheManager.set(key, value, ttl);
       this.logger.debug(`Cache SET: ${key}`);
@@ -107,14 +101,14 @@ export class CacheService implements OnModuleInit {
     ttl?: number,
   ): Promise<T> {
     const cached = await this.get<T>(key);
-    
+
     if (cached !== null) {
       return cached;
     }
 
     const freshValue = await fallback();
     await this.set(key, freshValue, ttl);
-    
+
     return freshValue;
   }
 
@@ -126,15 +120,20 @@ export class CacheService implements OnModuleInit {
       // Note: This requires Redis-specific implementation
       // For now, we'll use a simplified approach
       const keys = await this.getKeysByPattern(pattern);
-      
+
       for (const key of keys) {
         await this.del(key);
       }
 
-      this.logger.log(`Invalidated ${keys.length} keys matching pattern: ${pattern}`);
+      this.logger.log(
+        `Invalidated ${keys.length} keys matching pattern: ${pattern}`,
+      );
       return keys.length;
     } catch (error) {
-      this.logger.error(`Cache invalidation error for pattern ${pattern}:`, error);
+      this.logger.error(
+        `Cache invalidation error for pattern ${pattern}:`,
+        error,
+      );
       return 0;
     }
   }
@@ -164,16 +163,69 @@ export class CacheService implements OnModuleInit {
    */
   async clear(): Promise<void> {
     try {
-      const cache = this.cacheManager as any;
-      if (typeof cache.reset === 'function') {
-        await cache.reset();
-      } else if (typeof cache.clear === 'function') {
-        await cache.clear();
+      const wasCleared = await this.clearCacheBackend();
+
+      if (!wasCleared) {
+        this.logger.warn(
+          'Cache clear skipped: active cache backend does not expose reset() or clear().',
+        );
+        return;
       }
+
       this.logger.log('Cache cleared');
     } catch (error) {
       this.logger.error('Cache clear error:', error);
     }
+  }
+
+  /**
+   * Clears cache across different cache-manager backend shapes.
+   * Supports top-level cache manager methods, nested store methods,
+   * and multi-store backends.
+   */
+  private async clearCacheBackend(): Promise<boolean> {
+    const cache = this.cacheManager as {
+      store?: unknown;
+      stores?: unknown[];
+    };
+
+    const targets: unknown[] = [cache, cache.store];
+
+    if (Array.isArray(cache.stores)) {
+      targets.push(...cache.stores);
+    }
+
+    let cleared = false;
+
+    for (const target of targets) {
+      if (!target) {
+        continue;
+      }
+
+      const didClear = await this.callResetOrClear(target);
+      cleared = cleared || didClear;
+    }
+
+    return cleared;
+  }
+
+  private async callResetOrClear(target: unknown): Promise<boolean> {
+    const candidate = target as {
+      reset?: () => Promise<void> | void;
+      clear?: () => Promise<void> | void;
+    };
+
+    if (typeof candidate.reset === 'function') {
+      await candidate.reset();
+      return true;
+    }
+
+    if (typeof candidate.clear === 'function') {
+      await candidate.clear();
+      return true;
+    }
+
+    return false;
   }
 
   /**

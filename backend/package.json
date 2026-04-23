@@ -43,6 +43,7 @@
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^14.6.1",
     "@types/bcrypt": "^6.0.0",
+    "@types/nodemailer": "^8.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "axios": "^1.13.6",
@@ -57,6 +58,7 @@
     "ioredis": "^5.10.1",
     "json2csv": "^6.0.0-alpha.2",
     "nest-winston": "^1.10.2",
+    "nodemailer": "^8.0.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -67,6 +69,7 @@
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",
+    "web-push": "^3.6.7",
     "winston": "^3.19.0",
     "ws": "^8.13.0"
   },

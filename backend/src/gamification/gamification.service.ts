@@ -189,4 +189,101 @@ export class GamificationService {
 
     return true;
   }
+
+  /**
+   * Get detailed user progress for all achievements
+   * Shows completion percentage and remaining requirements
+   */
+  async getUserProgress(userId: string): Promise<any[]> {
+    const achievements = await this.achievementRepository.find({
+      where: { isActive: true },
+    });
+
+    const userAchievements = await this.userAchievementRepository.find({
+      where: { userId },
+      relations: ['achievement'],
+    });
+
+    const progressMap = new Map();
+    userAchievements.forEach((ua) => {
+      progressMap.set(ua.achievementId, ua);
+    });
+
+    return achievements.map((achievement) => {
+      const userAchievement = progressMap.get(achievement.id);
+      const currentProgress = userAchievement
+        ? Number(userAchievement.currentProgress)
+        : 0;
+      const targetValue = Number(achievement.targetValue);
+      const progressPercentage = Math.min(
+        (currentProgress / targetValue) * 100,
+        100,
+      );
+      const remaining = Math.max(targetValue - currentProgress, 0);
+
+      return {
+        achievementId: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        triggerEvent: achievement.triggerEvent,
+        ruleType: achievement.ruleType,
+        targetValue,
+        currentProgress,
+        progressPercentage: Math.round(progressPercentage * 100) / 100,
+        remaining,
+        isCompleted: userAchievement?.isCompleted || false,
+        completedAt: userAchievement?.completedAt || null,
+        rewardPoints: achievement.rewardPoints,
+      };
+    });
+  }
+
+  /**
+   * Get achievements by category/trigger event
+   */
+  async getAchievementsByEvent(eventType: TriggerEvent): Promise<Achievement[]> {
+    return this.achievementRepository.find({
+      where: { triggerEvent: eventType, isActive: true },
+    });
+  }
+
+  /**
+   * Get recently unlocked achievements for a user
+   */
+  async getRecentAchievements(
+    userId: string,
+    limit: number = 10,
+  ): Promise<UserAchievement[]> {
+    return this.userAchievementRepository.find({
+      where: { userId, isCompleted: true },
+      relations: ['achievement'],
+      order: { completedAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  /**
+   * Get user's achievement statistics
+   */
+  async getUserAchievementStats(userId: string): Promise<any> {
+    const userAchievements = await this.userAchievementRepository.find({
+      where: { userId },
+      relations: ['achievement'],
+    });
+
+    const total = userAchievements.length;
+    const completed = userAchievements.filter((ua) => ua.isCompleted).length;
+    const inProgress = total - completed;
+    const totalRewardPoints = userAchievements
+      .filter((ua) => ua.isCompleted)
+      .reduce((sum, ua) => sum + (ua.achievement?.rewardPoints || 0), 0);
+
+    return {
+      total,
+      completed,
+      inProgress,
+      totalRewardPoints,
+      completionRate: total > 0 ? (completed / total) * 100 : 0,
+    };
+  }
 }

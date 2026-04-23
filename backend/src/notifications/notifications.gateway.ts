@@ -39,6 +39,14 @@ export class NotificationsGateway
 
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  onModuleInit(): void {
+    this.notificationsService.registerRealtimeDispatcher(
+      async (userId, notification) => {
+        await this.sendNotificationToUser(userId, notification);
+      },
+    );
+  }
+
   async handleConnection(client: Socket): Promise<void> {
     this.logger.log(`Client connected: ${client.id}`);
 

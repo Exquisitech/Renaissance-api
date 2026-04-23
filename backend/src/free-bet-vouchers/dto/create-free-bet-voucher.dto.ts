@@ -6,6 +6,8 @@ import {
   IsOptional,
   IsInt,
   Min,
+  IsIn,
+  IsString,
 } from 'class-validator';
 
 export class CreateFreeBetVoucherDto {
@@ -26,4 +28,13 @@ export class CreateFreeBetVoucherDto {
   @IsInt()
   @Min(1)
   maxActiveVouchersPerUser?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['MANUAL', 'SPIN', 'PROMOTION', 'COMPENSATION'])
+  sourceType?: 'MANUAL' | 'SPIN' | 'PROMOTION' | 'COMPENSATION';
+
+  @IsOptional()
+  @IsString()
+  sourceReferenceId?: string;
 }

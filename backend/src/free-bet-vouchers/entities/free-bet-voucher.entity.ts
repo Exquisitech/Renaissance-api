@@ -3,7 +3,8 @@ import { BaseEntity } from '../../common/entities/base.entity';
 import { User } from '../../users/entities/user.entity';
 
 /**
- * Free bet vouchers from spin rewards.
+ * Free bet vouchers.
+ * - Can be issued independently (manual, promotion, spin, compensation).
  * - Cannot be withdrawn (not added to wallet balance).
  * - Can only be applied to betting.
  * - Automatically consumed on use.

@@ -11,7 +11,7 @@ import { Transaction } from '../transactions/entities/transaction.entity';
 import { Spin } from '../spin/entities/spin.entity';
 import { User } from '../users/entities/user.entity';
 import { Match } from '../matches/entities/match.entity';
-import { NFTListing } from '../nft/entities/nft-listing.entity';
+import { NFTReward } from '../spin-game/entities/nft-reward.entity';
 import { Prediction } from '../predictions/entities/prediction.entity';
 
 @Module({
@@ -27,7 +27,7 @@ import { Prediction } from '../predictions/entities/prediction.entity';
       Spin,
       User,
       Match,
-      NFTListing,
+      NFTReward,
       Prediction,
     ]),
   ],

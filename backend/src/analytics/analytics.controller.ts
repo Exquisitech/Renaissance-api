@@ -76,12 +76,20 @@ export class AnalyticsController {
 
   @Get('events')
   async getEvents(@Query() query: AnalyticsQueryDto) {
-    return this.analyticsEventService.getEvents(query);
+    return this.analyticsEventService.getEvents({
+      ...query,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    });
   }
 
   @Get('events/usage-patterns')
   async getUsagePatterns(@Query() query: AnalyticsQueryDto) {
-    return this.analyticsEventService.getUsagePatterns(query);
+    return this.analyticsEventService.getUsagePatterns({
+      ...query,
+      startDate: query.startDate ? new Date(query.startDate) : undefined,
+      endDate: query.endDate ? new Date(query.endDate) : undefined,
+    });
   }
 
   @Get('users/:userId/behavior')
@@ -97,5 +105,10 @@ export class AnalyticsController {
     const startDate = new Date(dateRange.startDate || Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = new Date(dateRange.endDate || new Date());
     return this.analyticsEventService.getPlatformMetrics(startDate, endDate);
+  }
+
+  @Get('dashboard')
+  async getDashboardMetrics(@Query() dateRange: DateRangeDto) {
+    return this.analyticsService.getDashboardMetrics(dateRange);
   }
 }

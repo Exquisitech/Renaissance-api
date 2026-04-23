@@ -2,14 +2,14 @@ import { Injectable, Inject, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, SelectQueryBuilder } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { DateRangeDto } from '../dto/date-range.dto';
 import { Bet } from '../../bets/entities/bet.entity';
 import { Transaction } from '../../transactions/entities/transaction.entity';
 import { Spin } from '../../spin/entities/spin.entity';
 import { User } from '../../users/entities/user.entity';
 import { Match } from '../../matches/entities/match.entity';
-import { NFTListing } from '../../nft/entities/nft-listing.entity';
+import { NFTReward } from '../../spin-game/entities/nft-reward.entity';
 import { Prediction } from '../../predictions/entities/prediction.entity';
 import { AnalyticsEventService, PlatformMetrics } from './analytics-event.service';
 
@@ -29,22 +29,26 @@ export class AnalyticsService {
     private userRepository: Repository<User>,
     @InjectRepository(Match)
     private matchRepository: Repository<Match>,
-    @InjectRepository(NFTListing)
-    private nftListingRepository: Repository<NFTListing>,
+    @InjectRepository(NFTReward)
+    private nftRewardRepository: Repository<NFTReward>,
     @InjectRepository(Prediction)
     private predictionRepository: Repository<Prediction>,
     private analyticsEventService: AnalyticsEventService,
   ) {}
 
-  private buildDateFilter(dateRange: DateRangeDto) {
-    if (!dateRange.startDate || !dateRange.endDate) return {};
+  private applyDateFilter(
+    qb: SelectQueryBuilder<any>,
+    dateRange: DateRangeDto,
+    dateField = 'createdAt',
+  ): SelectQueryBuilder<any> {
+    if (!dateRange.startDate || !dateRange.endDate) {
+      return qb;
+    }
 
-    return {
-      createdAt: {
-        gte: new Date(dateRange.startDate),
-        lte: new Date(dateRange.endDate),
-      },
-    };
+    return qb.andWhere(`${dateField} BETWEEN :startDate AND :endDate`, {
+      startDate: new Date(dateRange.startDate),
+      endDate: new Date(dateRange.endDate),
+    });
   }
 
   async totalStaked(dateRange: DateRangeDto) {
@@ -56,10 +60,11 @@ export class AnalyticsService {
       const result = await this.betRepository
         .createQueryBuilder('bet')
         .select('SUM(bet.amount)', 'total')
-        .where(this.buildDateFilter(dateRange))
-        .getRawOne();
+        .where('1=1');
 
-      const total = result?.total || 0;
+      this.applyDateFilter(result, dateRange, 'bet.createdAt');
+      const totalResult = await result.getRawOne();
+      const total = totalResult?.total || 0;
       await this.cacheManager.set(cacheKey, { total }, 300); // 5 min cache
       return { total };
     } catch (error) {
@@ -78,11 +83,11 @@ export class AnalyticsService {
         .createQueryBuilder('spin')
         .select('SUM(spin.betAmount)', 'revenue')
         .addSelect('SUM(spin.winAmount)', 'payout')
-        .where(this.buildDateFilter(dateRange))
-        .getRawOne();
-
-      const revenue = revenueResult?.revenue || 0;
-      const payout = revenueResult?.payout || 0;
+        .where('1=1');
+      this.applyDateFilter(revenueResult, dateRange, 'spin.createdAt');
+      const computedRevenue = await revenueResult.getRawOne();
+      const revenue = computedRevenue?.revenue || 0;
+      const payout = computedRevenue?.payout || 0;
       const profit = revenue - payout;
 
       const result = { revenue, payout, profit };
@@ -100,16 +105,15 @@ export class AnalyticsService {
     if (cached) return cached;
 
     try {
-      const popularNFTs = await this.nftListingRepository
-        .createQueryBuilder('listing')
-        .leftJoin('listing.nft', 'nft')
-        .select('nft.id', 'nftId')
-        .addSelect('nft.name', 'name')
-        .addSelect('COUNT(listing.id)', 'listingCount')
-        .addSelect('AVG(listing.price)', 'avgPrice')
-        .groupBy('nft.id')
-        .addGroupBy('nft.name')
-        .orderBy('listingCount', 'DESC')
+      const popularNFTs = await this.nftRewardRepository
+        .createQueryBuilder('reward')
+        .select('reward.nftId', 'nftId')
+        .addSelect('reward.tier', 'tier')
+        .addSelect('COUNT(reward.id)', 'mintCount')
+        .where('reward.isMinted = :minted', { minted: true })
+        .groupBy('reward.nftId')
+        .addGroupBy('reward.tier')
+        .orderBy('mintCount', 'DESC')
         .limit(10)
         .getRawMany();
 
@@ -133,12 +137,14 @@ export class AnalyticsService {
         .addSelect('COUNT(bet.id)', 'count')
         .addSelect('SUM(bet.amount)', 'totalAmount')
         .addSelect('SUM(bet.potentialWin)', 'totalPotentialWin')
-        .where(this.buildDateFilter(dateRange))
+        .where('1=1');
+      this.applyDateFilter(stats, dateRange, 'bet.createdAt');
+      const computedStats = await stats
         .groupBy('bet.status')
         .getRawMany();
 
-      await this.cacheManager.set(cacheKey, stats, 300);
-      return stats;
+      await this.cacheManager.set(cacheKey, computedStats, 300);
+      return computedStats;
     } catch (error) {
       this.logger.error(`Error getting bet settlement stats: ${error.message}`);
       return [];
@@ -183,27 +189,31 @@ export class AnalyticsService {
         this.betRepository
           .createQueryBuilder('bet')
           .select('SUM(bet.amount)', 'bets')
-          .where(this.buildDateFilter(dateRange))
-          .getRawOne(),
+          .where('1=1'),
         this.spinRepository
           .createQueryBuilder('spin')
           .select('SUM(spin.betAmount)', 'spins')
-          .where(this.buildDateFilter(dateRange))
-          .getRawOne(),
-        this.nftListingRepository
-          .createQueryBuilder('listing')
-          .select('SUM(listing.price)', 'nfts')
-          .where(this.buildDateFilter(dateRange))
-          .andWhere('listing.status = :status', { status: 'sold' })
-          .getRawOne(),
+          .where('1=1'),
+        this.nftRewardRepository
+          .createQueryBuilder('reward')
+          .select('COUNT(reward.id)', 'nfts')
+          .where('reward.isMinted = :minted', { minted: true }),
+      ]);
+      this.applyDateFilter(betRevenue, dateRange, 'bet.createdAt');
+      this.applyDateFilter(spinRevenue, dateRange, 'spin.createdAt');
+      this.applyDateFilter(nftRevenue, dateRange, 'reward.createdAt');
+      const [betRevenueRaw, spinRevenueRaw, nftRevenueRaw] = await Promise.all([
+        betRevenue.getRawOne(),
+        spinRevenue.getRawOne(),
+        nftRevenue.getRawOne(),
       ]);
 
-      const totalRevenue = (betRevenue?.bets || 0) + (spinRevenue?.spins || 0) + (nftRevenue?.nfts || 0);
+      const totalRevenue = (betRevenueRaw?.bets || 0) + (spinRevenueRaw?.spins || 0) + (nftRevenueRaw?.nfts || 0);
 
       const result = {
-        bets: betRevenue?.bets || 0,
-        spins: spinRevenue?.spins || 0,
-        nfts: nftRevenue?.nfts || 0,
+        bets: betRevenueRaw?.bets || 0,
+        spins: spinRevenueRaw?.spins || 0,
+        nfts: nftRevenueRaw?.nfts || 0,
         total: totalRevenue,
       };
 
@@ -226,39 +236,44 @@ export class AnalyticsService {
           .createQueryBuilder('match')
           .select('COUNT(match.id)', 'totalMatches')
           .addSelect('AVG(match.homeScore + match.awayScore)', 'avgGoals')
-          .where(this.buildDateFilter(dateRange))
-          .getRawOne(),
+          .where('1=1'),
         this.predictionRepository
           .createQueryBuilder('prediction')
           .select('COUNT(prediction.id)', 'totalPredictions')
           .addSelect('SUM(CASE WHEN prediction.isCorrect THEN 1 ELSE 0 END)', 'correctPredictions')
-          .where(this.buildDateFilter(dateRange))
-          .getRawOne(),
+          .where('1=1'),
         this.userRepository
           .createQueryBuilder('user')
           .select('COUNT(user.id)', 'totalUsers')
           .addSelect('COUNT(CASE WHEN user.lastLogin > :recent THEN 1 END)', 'activeUsers')
-          .where(this.buildDateFilter(dateRange))
+          .where('1=1')
           .setParameters({ recent: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) })
-          .getRawOne(),
+      ]);
+      this.applyDateFilter(matchStats, dateRange, 'match.createdAt');
+      this.applyDateFilter(predictionStats, dateRange, 'prediction.createdAt');
+      this.applyDateFilter(userStats, dateRange, 'user.createdAt');
+      const [matchStatsRaw, predictionStatsRaw, userStatsRaw] = await Promise.all([
+        matchStats.getRawOne(),
+        predictionStats.getRawOne(),
+        userStats.getRawOne(),
       ]);
 
-      const predictionAccuracy = predictionStats?.totalPredictions > 0
-        ? (predictionStats.correctPredictions / predictionStats.totalPredictions) * 100
+      const predictionAccuracy = predictionStatsRaw?.totalPredictions > 0
+        ? (predictionStatsRaw.correctPredictions / predictionStatsRaw.totalPredictions) * 100
         : 0;
 
       const result = {
         matches: {
-          total: matchStats?.totalMatches || 0,
-          avgGoals: matchStats?.avgGoals || 0,
+          total: matchStatsRaw?.totalMatches || 0,
+          avgGoals: matchStatsRaw?.avgGoals || 0,
         },
         predictions: {
-          total: predictionStats?.totalPredictions || 0,
+          total: predictionStatsRaw?.totalPredictions || 0,
           accuracy: predictionAccuracy,
         },
         users: {
-          total: userStats?.totalUsers || 0,
-          active: userStats?.activeUsers || 0,
+          total: userStatsRaw?.totalUsers || 0,
+          active: userStatsRaw?.activeUsers || 0,
         },
       };
 
@@ -270,6 +285,145 @@ export class AnalyticsService {
         matches: { total: 0, avgGoals: 0 },
         predictions: { total: 0, accuracy: 0 },
         users: { total: 0, active: 0 },
+      };
+    }
+  }
+
+  /**
+   * Get comprehensive dashboard metrics
+   * Includes DAU, MAU, bet volume, revenue, user growth
+   */
+  async getDashboardMetrics(dateRange: DateRangeDto) {
+    const cacheKey = `dashboard_metrics_${JSON.stringify(dateRange)}`;
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const startDate = new Date(dateRange.startDate || '2024-01-01');
+      const endDate = new Date(dateRange.endDate || new Date());
+
+      // Calculate DAU (Daily Active Users)
+      const dauResult = await this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(DISTINCT user.id)', 'dau')
+        .where('user.lastLogin >= :startDate AND user.lastLogin <= :endDate', {
+          startDate: new Date(startDate.toDateString()),
+          endDate: new Date(new Date(startDate).setDate(startDate.getDate() + 1)),
+        })
+        .getRawOne();
+
+      // Calculate MAU (Monthly Active Users)
+      const mauResult = await this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(DISTINCT user.id)', 'mau')
+        .where('user.lastLogin >= :monthStart', {
+          monthStart: new Date(startDate.getFullYear(), startDate.getMonth(), 1),
+        })
+        .getRawOne();
+
+      // Bet Volume
+      const betVolumeResult = await this.betRepository
+        .createQueryBuilder('bet')
+        .select('COUNT(bet.id)', 'totalBets')
+        .addSelect('SUM(bet.amount)', 'totalVolume')
+        .addSelect('AVG(bet.amount)', 'avgBetSize')
+        .where('bet.createdAt >= :startDate AND bet.createdAt <= :endDate', {
+          startDate,
+          endDate,
+        })
+        .getRawOne();
+
+      // Revenue Metrics
+      const [betRevenue, spinRevenue] = await Promise.all([
+        this.betRepository
+          .createQueryBuilder('bet')
+          .select('SUM(bet.amount)', 'betRevenue')
+          .addSelect('SUM(CASE WHEN bet.status = \'won\' THEN bet.potentialWin ELSE 0 END)', 'payouts')
+          .where('bet.createdAt >= :startDate AND bet.createdAt <= :endDate', {
+            startDate,
+            endDate,
+          })
+          .getRawOne(),
+        this.spinRepository
+          .createQueryBuilder('spin')
+          .select('SUM(spin.betAmount)', 'spinRevenue')
+          .addSelect('SUM(spin.winAmount)', 'spinPayouts')
+          .where('spin.createdAt >= :startDate AND spin.createdAt <= :endDate', {
+            startDate,
+            endDate,
+          })
+          .getRawOne(),
+      ]);
+
+      const totalRevenue = (betRevenue?.betRevenue || 0) + (spinRevenue?.spinRevenue || 0);
+      const totalPayouts = (betRevenue?.payouts || 0) + (spinRevenue?.spinPayouts || 0);
+      const netRevenue = totalRevenue - totalPayouts;
+
+      // User Growth
+      const newUserCount = await this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(user.id)', 'newUsers')
+        .where('user.createdAt >= :startDate AND user.createdAt <= :endDate', {
+          startDate,
+          endDate,
+        })
+        .getRawOne();
+
+      // Previous period comparison for growth rate
+      const previousStartDate = new Date(startDate);
+      const previousEndDate = new Date(startDate);
+      const dateDiff = endDate.getTime() - startDate.getTime();
+      previousStartDate.setTime(previousStartDate.getTime() - dateDiff);
+
+      const previousUserCount = await this.userRepository
+        .createQueryBuilder('user')
+        .select('COUNT(user.id)', 'previousUsers')
+        .where('user.createdAt >= :previousStartDate AND user.createdAt < :previousEndDate', {
+          previousStartDate,
+          previousEndDate: startDate,
+        })
+        .getRawOne();
+
+      const userGrowthRate = previousUserCount?.previousUsers > 0
+        ? ((newUserCount?.newUsers || 0) - previousUserCount.previousUsers) / previousUserCount.previousUsers * 100
+        : 0;
+
+      const result = {
+        dau: dauResult?.dau || 0,
+        mau: mauResult?.mau || 0,
+        betVolume: {
+          totalBets: betVolumeResult?.totalBets || 0,
+          totalVolume: betVolumeResult?.totalVolume || 0,
+          avgBetSize: betVolumeResult?.avgBetSize || 0,
+        },
+        revenue: {
+          totalRevenue,
+          totalPayouts,
+          netRevenue,
+          betRevenue: betRevenue?.betRevenue || 0,
+          spinRevenue: spinRevenue?.spinRevenue || 0,
+        },
+        userGrowth: {
+          newUsers: newUserCount?.newUsers || 0,
+          growthRate: userGrowthRate,
+        },
+        dateRange: {
+          startDate,
+          endDate,
+        },
+      };
+
+      await this.cacheManager.set(cacheKey, result, 300);
+      return result;
+    } catch (error) {
+      this.logger.error(`Error calculating dashboard metrics: ${error.message}`);
+      return {
+        dau: 0,
+        mau: 0,
+        betVolume: { totalBets: 0, totalVolume: 0, avgBetSize: 0 },
+        revenue: { totalRevenue: 0, totalPayouts: 0, netRevenue: 0, betRevenue: 0, spinRevenue: 0 },
+        userGrowth: { newUsers: 0, growthRate: 0 },
+        dateRange: { startDate: new Date(), endDate: new Date() },
       };
     }
   }

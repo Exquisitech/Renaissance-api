@@ -4,6 +4,7 @@
     "ethers": "^6.16.0",
     "@nestjs/cqrs": "^11.0.3",
     "@nestjs/typeorm": "^11.0.0",
+    "ioredis": "^5.10.1",
     "nest-winston": "^1.10.2",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0",

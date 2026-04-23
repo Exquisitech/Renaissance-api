@@ -54,6 +54,10 @@ import { NFTMarketplaceModule } from './nft/nft-marketplace.module';
 import { NFTPlayerCard } from './nft/entities/nft-player-card.entity';
 import { NFTListing } from './nft/entities/nft-listing.entity';
 import { NFTOffer } from './nft/entities/nft-offer.entity';
+import { DatabaseModule } from './database/database.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { FraudModule } from './fraud/fraud.module';
 
 @Module({
   imports: [
@@ -103,6 +107,7 @@ import { NFTOffer } from './nft/entities/nft-offer.entity';
       NFTListing,
       NFTOffer,
     ]),
+    DatabaseModule,
     RateLimitModule,
     AuthModule,
     MatchesModule,
@@ -125,6 +130,9 @@ import { NFTOffer } from './nft/entities/nft-offer.entity';
     StakingModule,
     PlayerModule,
     NFTMarketplaceModule,
+    AnalyticsModule,
+    NotificationsModule,
+    FraudModule,
   ],
   providers: [
     {
