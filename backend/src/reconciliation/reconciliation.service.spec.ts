@@ -200,6 +200,33 @@ describe('ReconciliationService', () => {
       expect(result.discrepancies[0].difference).toBe(0.000001);
       expect(result.discrepancies[0].isWithinTolerance).toBe(false);
     });
+
+    it('should flag on-chain/off-chain discrepancies for admin review', async () => {
+      const mockUsers = [
+        { id: 'user1', email: 'user1@example.com', walletBalance: 100 },
+      ];
+
+      mockUserRepository.find.mockResolvedValue(mockUsers);
+      (service as any).getOnChainBalances = jest.fn().mockResolvedValue({
+        user1: 98, // significant on-chain/off-chain discrepancy
+      });
+
+      const config = {
+        toleranceThreshold: 0.00000001,
+        autoCorrectRoundingDifferences: true,
+        autoCorrectionThreshold: 0.000001,
+        enableLedgerConsistencyCheck: true,
+        cronSchedule: '0 */6 * * *',
+        notifyOnCriticalDiscrepancies: true,
+      };
+
+      const result = await (service as any).compareBalances(config);
+
+      expect(result.discrepancies).toHaveLength(1);
+      expect(result.discrepancies[0].difference).toBe(2);
+      expect(result.discrepancies[0].discrepancyStatus).toBe('flagged');
+      expect(result.report.discrepanciesByType['onchain_balance_discrepancy']).toBe(1);
+    });
   });
 
   describe('autoCorrectRoundingDifferences', () => {

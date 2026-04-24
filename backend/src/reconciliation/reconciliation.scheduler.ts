@@ -9,6 +9,7 @@ export class ReconciliationScheduler {
   private readonly logger = new Logger(ReconciliationScheduler.name);
   private isRunning = false;
   private isQuickCheckRunning = false;
+  private isDailyBalanceReconciliationRunning = false;
 
   constructor(
     private readonly reconciliationService: ReconciliationService,
@@ -43,8 +44,9 @@ export class ReconciliationScheduler {
 
     try {
       const report = await this.reconciliationService.runReconciliation({
-        reportType: ReportType.SCHEDULED,
-      } as any);
+        type: ReportType.SCHEDULED,
+        includeLedgerConsistency: true,
+      });
 
       this.logger.log(
         `Scheduled reconciliation completed. Report ID: ${report.id}, Total issues: ${report.totalInconsistencies}`,
@@ -62,6 +64,48 @@ export class ReconciliationScheduler {
       );
     } finally {
       this.isRunning = false;
+    }
+  }
+
+  /**
+   * Daily reconciliation of on-chain and off-chain balances.
+   */
+  @Cron('0 2 * * *')
+  async handleDailyBalanceReconciliation(): Promise<void> {
+    if (!this.isEnabled()) {
+      this.logger.debug('Daily balance reconciliation is disabled');
+      return;
+    }
+
+    if (this.isDailyBalanceReconciliationRunning) {
+      this.logger.warn('Daily balance reconciliation already running, skipping...');
+      return;
+    }
+
+    this.isDailyBalanceReconciliationRunning = true;
+    this.logger.log('Starting daily on-chain/off-chain balance reconciliation...');
+
+    try {
+      const report = await this.reconciliationService.runReconciliation({
+        type: ReportType.SCHEDULED,
+        includeLedgerConsistency: true,
+      });
+
+      this.logger.log(
+        `Daily balance reconciliation completed. Report ID: ${report.id}, issues: ${report.totalInconsistencies}`,
+      );
+
+      if (report.onchainDiscrepancyCount + report.offchainDiscrepancyCount > 0) {
+        this.logger.warn(
+          `Admin review required: ${report.onchainDiscrepancyCount + report.offchainDiscrepancyCount} on-chain/off-chain discrepancies detected.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Daily balance reconciliation failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      this.isDailyBalanceReconciliationRunning = false;
     }
   }
 

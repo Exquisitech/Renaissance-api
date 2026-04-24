@@ -186,20 +186,21 @@ export class ReconciliationService {
         totalDiscrepancyAmount += difference;
 
         let severity = Severity.LOW;
-        let discrepancyType = InconsistencyType.LEDGER_MISMATCH;
+        let discrepancyType: InconsistencyType;
+        let discrepancyStatus = DiscrepancyStatus.FLAGGED;
 
         if (isRoundingDifference) {
           severity = Severity.LOW;
           discrepancyType = InconsistencyType.ROUNDING_DIFFERENCE;
+          discrepancyStatus = DiscrepancyStatus.DETECTED;
           discrepanciesByType[InconsistencyType.ROUNDING_DIFFERENCE]++;
-        } else if (difference > 1) {
-          severity = Severity.HIGH;
-          discrepancyType = InconsistencyType.ONCHAIN_BALANCE_DISCREPANCY;
-          discrepanciesByType[InconsistencyType.ONCHAIN_BALANCE_DISCREPANCY]++;
         } else {
-          severity = Severity.MEDIUM;
-          discrepancyType = InconsistencyType.LEDGER_MISMATCH;
-          discrepanciesByType[InconsistencyType.LEDGER_MISMATCH]++;
+          severity = difference > 1 ? Severity.HIGH : Severity.MEDIUM;
+          discrepancyType =
+            onchainBalance > backendBalance
+              ? InconsistencyType.OFFCHAIN_BALANCE_DISCREPANCY
+              : InconsistencyType.ONCHAIN_BALANCE_DISCREPANCY;
+          discrepanciesByType[discrepancyType]++;
         }
 
         discrepanciesBySeverity[severity]++;
@@ -212,7 +213,7 @@ export class ReconciliationService {
           difference,
           toleranceThreshold: config.toleranceThreshold,
           isWithinTolerance,
-          discrepancyStatus: DiscrepancyStatus.DETECTED,
+          discrepancyStatus,
           detectedAt: new Date(),
         });
       } else {
