@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Stake } from './entities/stake.entity';
-import { WalletService } from 'src/wallet';
+import { WalletService } from '../wallet/services/wallet.service';
 
 // Annual Percentage Rate — adjust as needed
 const APR = 0.12;

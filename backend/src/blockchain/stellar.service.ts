@@ -94,8 +94,8 @@ export class StellarService {
     try {
       this.logger.log(`Fetching XLM balance for: ${address}`);
 
-      const account = await this.server!.getAccount(address);
-      const balances = account.balances;
+      const accountResponse = await this.server!.getAccount(address);
+      const balances = (accountResponse as any).balances || [];
 
       // Find native XLM balance
       const xlmBalance = balances.find((b) => b.asset_type === 'native');
@@ -105,7 +105,7 @@ export class StellarService {
       }
 
       const balance = parseFloat(xlmBalance.balance);
-      const reserves = this.calculateReserves(account);
+      const reserves = this.calculateReserves(accountResponse);
       const available = balance - reserves;
 
       return {
@@ -120,7 +120,8 @@ export class StellarService {
         throw error;
       }
 
-      this.logger.error(`Error fetching XLM balance for ${address}: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching XLM balance for ${address}: ${errorMessage}`);
       throw new ServiceUnavailableException('Unable to fetch balance from Stellar network');
     }
   }
@@ -171,7 +172,7 @@ export class StellarService {
       const sourceAccount = await this.server!.getAccount(fromKeypair.publicKey());
 
       // Build transaction
-      const transaction = new TransactionBuilder(new Account(sourceAccount.id, sourceAccount.sequence), {
+      const transaction = new TransactionBuilder(sourceAccount, {
         fee: '100', // Base fee in stroops (0.00001 XLM)
         networkPassphrase: this.networkPassphrase,
       })
@@ -214,8 +215,9 @@ export class StellarService {
         throw new Error(`Transaction submission failed: ${sendResponse.status}`);
       }
     } catch (error) {
-      this.logger.error(`Error transferring XLM: ${error.message}`);
-      throw new BadRequestException(`XLM transfer failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error transferring XLM: ${errorMessage}`);
+      throw new BadRequestException(`XLM transfer failed: ${errorMessage}`);
     }
   }
 

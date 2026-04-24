@@ -82,10 +82,11 @@ export class NotificationService {
         messageId: info.messageId,
       };
     } catch (error) {
-      console.error(`Failed to send email to ${options.to}:`, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Failed to send email to ${options.to}:`, errorMessage);
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
       };
     }
   }
@@ -187,7 +188,7 @@ export class NotificationService {
       `${BACKEND_URL}/notifications?${params.toString()}`,
     );
     if (!res.ok) throw new Error('Failed to fetch notifications');
-    const body = await res.json();
+    const body = await res.json() as { notifications: any[] };
     return body.notifications;
   }
 

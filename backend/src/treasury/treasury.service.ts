@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { TreasuryDistribution, TreasuryDistributionItem } from './entities/treasury.entity';
-import { WalletService } from 'src/wallet';
+import { WalletService } from '../wallet/services/wallet.service';
 
 export interface DistributionRecipient {
   playerId: string;

@@ -59,6 +59,7 @@
     "ioredis": "^5.10.1",
     "json2csv": "^6.0.0-alpha.2",
     "nest-winston": "^1.10.2",
+    "node-fetch": "^3.3.2",
     "nodemailer": "^8.0.5",
     "openai": "^6.34.0",
     "passport": "^0.7.0",
