@@ -74,6 +74,30 @@ export interface BestPredictor {
   lastBetAt: Date;
 }
 
+export interface H2HComparison {
+  userA: {
+    userId: string;
+    username: string;
+    winRate: number;
+    totalProfit: number;
+    avgOdds: number;
+    currentStreak: number;
+    highestStreak: number;
+    totalBets: number;
+  };
+  userB: {
+    userId: string;
+    username: string;
+    winRate: number;
+    totalProfit: number;
+    avgOdds: number;
+    currentStreak: number;
+    highestStreak: number;
+    totalBets: number;
+  };
+  winner: string | null; // userId of overall winner or null if tied
+}
+
 @Injectable()
 export class RankingService {
   private readonly logger = new Logger(RankingService.name);
@@ -438,5 +462,38 @@ export class RankingService {
     }
 
     this.logger.log('Ranking cache invalidated');
+  }
+
+  async getH2HComparison(userAId: string, userBId: string): Promise<H2HComparison> {
+    const [a, b] = await Promise.all([
+      this.leaderboardRepository.findOne({ where: { userId: userAId }, relations: ['user'] }),
+      this.leaderboardRepository.findOne({ where: { userId: userBId }, relations: ['user'] }),
+    ]);
+
+    if (!a || !b) throw new Error('One or both users not found in leaderboard');
+
+    const toStats = (entry: Leaderboard, user: any) => ({
+      userId: entry.userId,
+      username: user?.username ?? entry.userId,
+      winRate: entry.totalBets > 0 ? Number(((entry.betsWon / entry.totalBets) * 100).toFixed(2)) : 0,
+      totalProfit: Number(entry.totalWinnings),
+      avgOdds: entry.totalBets > 0 ? Number((Number(entry.totalWinnings) / entry.totalBets).toFixed(4)) : 0,
+      currentStreak: entry.winningStreak,
+      highestStreak: entry.highestWinningStreak,
+      totalBets: entry.totalBets,
+    });
+
+    const statsA = toStats(a, a.user);
+    const statsB = toStats(b, b.user);
+
+    // Determine winner by score: winRate (40%) + profit (40%) + streak (20%)
+    const scoreA = statsA.winRate * 0.4 + statsA.totalProfit * 0.4 + statsA.highestStreak * 0.2;
+    const scoreB = statsB.winRate * 0.4 + statsB.totalProfit * 0.4 + statsB.highestStreak * 0.2;
+
+    return {
+      userA: statsA,
+      userB: statsB,
+      winner: scoreA > scoreB ? userAId : scoreB > scoreA ? userBId : null,
+    };
   }
 }

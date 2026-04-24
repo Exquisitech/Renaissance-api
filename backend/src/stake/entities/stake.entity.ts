@@ -29,6 +29,22 @@ export class Stake {
   @Column({ nullable: true })
   unstakedAt!: Date;
 
+  /** #357: Tier lock-up in days (0 = no lock) */
+  @Column('int', { default: 0 })
+  lockDays!: number;
+
+  /** #357: Timestamp when lock expires */
+  @Column({ nullable: true })
+  lockedUntil!: Date;
+
+  /** #357: APR applied to this stake (e.g. 0.12) */
+  @Column('decimal', { precision: 5, scale: 4, default: 0.12 })
+  apr!: number;
+
+  /** #358: Auto-compound pending rewards instead of paying out */
+  @Column({ default: false })
+  autoCompound!: boolean;
+
   @CreateDateColumn()
   stakedAt!: Date;
 

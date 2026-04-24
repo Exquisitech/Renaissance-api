@@ -14,7 +14,7 @@ import {
 } from '@nestjs/swagger';
 import { HttpCacheInterceptor } from '../../common/cache/interceptors/http-cache.interceptor';
 import { CacheKey } from '../../common/cache/decorators/cache-key.decorator';
-import { RankingService, PaginatedRanking, UserRanking } from '../services/ranking.service';
+import { RankingService, PaginatedRanking, UserRanking, H2HComparison } from '../services/ranking.service';
 import { RankingQueryDto, TimeFrame, RankingType } from '../dto/ranking-query.dto';
 
 @ApiTags('Rankings')
@@ -259,8 +259,7 @@ export class RankingController {
   })
   async getRankingsSummary(
     @Query('timeFrame') timeFrame: TimeFrame = TimeFrame.ALL_TIME,
-  ): Promise<any> {
-    const [earners, stakers, predictors] = await Promise.all([
+  ): Promise<any> {    const [earners, stakers, predictors] = await Promise.all([
       this.rankingService.getHighestEarners({ page: 1, limit: 10, timeFrame }),
       this.rankingService.getBiggestStakers({ page: 1, limit: 10, timeFrame }),
       this.rankingService.getBestPredictors({ page: 1, limit: 10, timeFrame }),
@@ -300,5 +299,17 @@ export class RankingController {
       timeFrame,
       lastUpdated: new Date(),
     };
+  }
+
+  @Get('h2h/:userAId/:userBId')
+  @ApiOperation({ summary: 'Head-to-head comparison between two users' })
+  @ApiParam({ name: 'userAId', description: 'First user UUID' })
+  @ApiParam({ name: 'userBId', description: 'Second user UUID' })
+  @ApiResponse({ status: 200, description: 'H2H comparison result' })
+  async getH2H(
+    @Param('userAId') userAId: string,
+    @Param('userBId') userBId: string,
+  ): Promise<H2HComparison> {
+    return this.rankingService.getH2HComparison(userAId, userBId);
   }
 }
