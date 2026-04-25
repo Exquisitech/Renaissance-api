@@ -1363,7 +1363,7 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
   ): BetStatus | null {
     const normalized = `${statusHint || ''} ${topics.join(' ')}`.toLowerCase();
 
-    if (normalized.includes('cancel')) {
+    if (normalized.includes('cancel') || normalized.includes('void')) {
       return BetStatus.CANCELLED;
     }
 
@@ -1373,6 +1373,10 @@ export class EventListenerService implements OnModuleInit, OnModuleDestroy {
 
     if (isWin === false) {
       return BetStatus.LOST;
+    }
+
+    if (normalized.includes('draw')) {
+      return BetStatus.CANCELLED;
     }
 
     if (normalized.includes('win') || normalized.includes('won')) {
