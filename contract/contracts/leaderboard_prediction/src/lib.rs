@@ -12,6 +12,7 @@ pub struct Bet {
     pub predicted_rank: u32,
     pub amount: i128,
     pub odds: u32, // Multiplier in basis points (e.g., 20000 = 2x)
+    pub has_insurance: bool,
 }
 
 #[contracttype]
@@ -29,6 +30,7 @@ impl LeaderboardPredictionMarket {
         env.storage().instance().set(&symbol_short!("bets"), &bets);
         env.storage().instance().set(&symbol_short!("open"), &true);
         env.storage().instance().set(&symbol_short!("nxt_id"), &0u64);
+        env.storage().instance().set(&symbol_short!("ins_pool"), &0i128);
     }
 
     /// Place a bet on a player's future rank.
@@ -43,6 +45,7 @@ impl LeaderboardPredictionMarket {
         volatility_index: u32,
         expected_odds: u32,
         max_slippage_bps: u32,
+        has_insurance: bool,
     ) -> u64 {
         bettor.require_auth();
 
@@ -82,12 +85,24 @@ impl LeaderboardPredictionMarket {
         let slippage = if expected_odds > odds { expected_odds - odds } else { odds - expected_odds };
         assert!(slippage <= max_slippage_bps, "Slippage exceeded: odds changed beyond threshold");
 
+        let mut actual_amount = amount;
+        if has_insurance {
+            // 2% insurance fee deducted from stake
+            let fee = amount * 2 / 100;
+            actual_amount = amount - fee;
+            
+            let mut ins_pool: i128 = env.storage().instance().get(&symbol_short!("ins_pool")).unwrap_or(0);
+            ins_pool += fee;
+            env.storage().instance().set(&symbol_short!("ins_pool"), &ins_pool);
+        }
+
         let bet = Bet {
             bettor,
             player_id,
             predicted_rank,
-            amount,
+            amount: actual_amount,
             odds,
+            has_insurance,
         };
 
         // Note: Escrow logic (transferring user funds to contract) would be implemented here 
@@ -114,6 +129,7 @@ impl LeaderboardPredictionMarket {
         env.storage().instance().set(&symbol_short!("open"), &false);
 
         let bets: Map<u64, Bet> = env.storage().instance().get(&symbol_short!("bets")).unwrap();
+        let mut ins_pool: i128 = env.storage().instance().get(&symbol_short!("ins_pool")).unwrap_or(0);
 
         for (_id, bet) in bets.into_iter() {
             if let Some(actual_rank) = final_rankings.get(bet.player_id) {
@@ -124,9 +140,19 @@ impl LeaderboardPredictionMarket {
                     // Note: Payout logic (transferring funds back to bet.bettor) 
                     // would be implemented here using token client.
                     let _ = payout; // suppress unused warning
+                } else if bet.has_insurance && actual_rank.abs_diff(bet.predicted_rank) == 1 {
+                    // Insurance payout: missed by narrow margin (1 rank difference)
+                    // Refund the stake from the insurance pool (up to available funds)
+                    let refund = core::cmp::min(bet.amount, ins_pool);
+                    ins_pool -= refund;
+                    
+                    // Note: Refund transfer logic goes here
+                    let _ = refund;
                 }
             }
         }
+        
+        env.storage().instance().set(&symbol_short!("ins_pool"), &ins_pool);
     }
 
     /// Display streak in rankings / UI. Retrieves the user's active streak.
