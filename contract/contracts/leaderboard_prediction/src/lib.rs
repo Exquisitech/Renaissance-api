@@ -34,6 +34,8 @@ impl LeaderboardPredictionMarket {
         amount: i128,
         current_rank: u32,
         volatility_index: u32,
+        expected_odds: u32,
+        max_slippage_bps: u32,
     ) -> u64 {
         bettor.require_auth();
 
@@ -47,6 +49,10 @@ impl LeaderboardPredictionMarket {
         
         // Base odds of 1.0x (10000 bps) + diff bonus + volatility factor
         let odds = 10000 + (rank_diff * 500) + (volatility_index * 100);
+
+        // Slippage protection: ensure calculated odds do not deviate beyond the threshold
+        let slippage = if expected_odds > odds { expected_odds - odds } else { odds - expected_odds };
+        assert!(slippage <= max_slippage_bps, "Slippage exceeded: odds changed beyond threshold");
 
         let bet = Bet {
             bettor,
