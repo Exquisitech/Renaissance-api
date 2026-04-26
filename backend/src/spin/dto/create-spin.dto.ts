@@ -22,7 +22,13 @@ export class CreateSpinDto {
   })
   @IsString()
   @IsOptional()
-  clientSeed?: string; // Optional client-provided seed for additional randomness
+  clientSeed?: string;
+
+  @ApiPropertyOptional({
+    description: 'When true, using a free bet voucher (payout is non-withdrawable)',
+    example: false,
+    default: false,
+  })
   @IsOptional()
-  isFreeBet?: boolean; // When true, any payout should be flagged non-withdrawable
+  isFreeBet?: boolean;
 }
