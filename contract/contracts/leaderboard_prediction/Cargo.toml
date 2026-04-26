@@ -1,0 +1,10 @@
+[package]
+name = "renaissance-leaderboard-prediction"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[lib]
+crate-type = ["cdylib"]
