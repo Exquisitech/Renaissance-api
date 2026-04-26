@@ -14,6 +14,13 @@ pub struct Bet {
     pub odds: u32, // Multiplier in basis points (e.g., 20000 = 2x)
 }
 
+#[contracttype]
+#[derive(Clone)]
+pub struct UserStreak {
+    pub streak_count: u32,
+    pub last_bet_day: u64,
+}
+
 #[contractimpl]
 impl LeaderboardPredictionMarket {
     /// Initialize the prediction market for a specific timeframe or event.
@@ -47,8 +54,29 @@ impl LeaderboardPredictionMarket {
         // Higher volatility = lower predictability, so odds could be adjusted up or down.
         let rank_diff = current_rank.abs_diff(predicted_rank);
         
+        let current_day = env.ledger().timestamp() / 86400;
+        let mut streaks: Map<Address, UserStreak> = env.storage().instance().get(&symbol_short!("streaks")).unwrap_or_else(|| Map::new(&env));
+        let mut user_streak = streaks.get(bettor.clone()).unwrap_or(UserStreak { streak_count: 0, last_bet_day: 0 });
+
+        if current_day == user_streak.last_bet_day + 1 {
+            user_streak.streak_count += 1; // Consecutive day
+        } else if current_day > user_streak.last_bet_day + 1 {
+            user_streak.streak_count = 1; // Streak broken
+        } else if user_streak.streak_count == 0 {
+            user_streak.streak_count = 1; // First bet ever
+        }
+        // If current_day == last_bet_day, streak is maintained but not incremented
+
+        user_streak.last_bet_day = current_day;
+        streaks.set(bettor.clone(), user_streak.clone());
+        env.storage().instance().set(&symbol_short!("streaks"), &streaks);
+
         // Base odds of 1.0x (10000 bps) + diff bonus + volatility factor
-        let odds = 10000 + (rank_diff * 500) + (volatility_index * 100);
+        let base_odds = 10000 + (rank_diff * 500) + (volatility_index * 100);
+
+        // Streak bonus: +5% per consecutive day (starting from day 2), max 50%
+        let bonus_pct = core::cmp::min(user_streak.streak_count.saturating_sub(1) * 5, 50);
+        let odds = base_odds + (base_odds * bonus_pct / 100);
 
         // Slippage protection: ensure calculated odds do not deviate beyond the threshold
         let slippage = if expected_odds > odds { expected_odds - odds } else { odds - expected_odds };
@@ -99,5 +127,19 @@ impl LeaderboardPredictionMarket {
                 }
             }
         }
+    }
+
+    /// Display streak in rankings / UI. Retrieves the user's active streak.
+    pub fn get_user_streak(env: Env, bettor: Address) -> u32 {
+        let streaks: Map<Address, UserStreak> = env.storage().instance().get(&symbol_short!("streaks")).unwrap_or_else(|| Map::new(&env));
+        if let Some(user_streak) = streaks.get(bettor) {
+            let current_day = env.ledger().timestamp() / 86400;
+            // If more than 1 day has passed without betting, streak is broken
+            if current_day > user_streak.last_bet_day + 1 {
+                return 0;
+            }
+            return user_streak.streak_count;
+        }
+        0
     }
 }
